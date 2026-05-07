@@ -1,7 +1,7 @@
 //
 // Created for KaiRPC on 23-9-27.
 //
-#include "tinyxml/tinyxml.h"
+#include "tinyxml.h"
 #include "config.h"
 #include "config_reader.h"
 
