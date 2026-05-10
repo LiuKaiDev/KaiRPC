@@ -7,7 +7,7 @@
 #include "map"
 #include "unordered_map"
 #include "string"
-#include <tinyxml/tinyxml.h>
+#include <tinyxml.h>
 #include "tcp/net_addr.h"
 namespace talon {
     struct RpcStub {
