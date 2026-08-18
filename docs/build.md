@@ -42,6 +42,33 @@ The repository script accepts an optional build directory and runs the same conf
 
 Executables are written to `build-stage1/bin/`; the static library is written to `build-stage1/lib/`.
 
+## Automated tests
+
+CTest is enabled by default through `BUILD_TESTING`. A fresh build directory
+keeps the baseline independent from previous manual smoke runs:
+
+```bash
+cmake -S . -B build-stage2-debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build build-stage2-debug -j"$(nproc)"
+ctest --test-dir build-stage2-debug --output-on-failure
+```
+
+The registered tests are grouped with `unit` and `integration` labels:
+
+```bash
+ctest --test-dir build-stage2-debug -L unit --output-on-failure
+ctest --test-dir build-stage2-debug -L integration --output-on-failure
+```
+
+Unit tests cover `TcpBuffer` and the TinyPB round-trip/fragmentation/coalescing
+path. Integration tests launch the existing service-discovery, RPC server, and
+RPC client binaries in bounded process groups and exercise their loopback TCP
+paths. Integration tests are serialized because the example programs use the
+fixed ports from `conf/service_center.conf` and `conf/kairpc.xml`.
+
+The intentionally unfixed production risks tracked by this baseline are listed
+in [docs/known-regressions.md](known-regressions.md).
+
 ## Generated Protobuf files
 
 The committed example messages and service are generated from `test/order.proto` with the installed `protoc` compiler:
@@ -75,8 +102,6 @@ timeout 2s ./build-stage1/bin/rpc_service_discovery
 
 It listens on the configured query/control ports. `test_interface` performs a runtime `lookup` and requires the service center to be running. `rpc_server` and `rpc_client` are manual multi-process examples, not automated tests; start them only after reviewing their fixed local ports and configuration.
 
-There is currently no registered CTest suite.
-
 ## Sanitizers
 
 Sanitizers are opt-in and do not change the release build:
@@ -93,4 +118,4 @@ cmake -S . -B build-ubsan -DCMAKE_BUILD_TYPE=Debug \
 cmake --build build-ubsan -j"$(nproc)"
 ```
 
-On the validated WSL2 host, fresh ASan and UBSan full builds and their TinyPB, RPC loopback, and service-discovery smoke paths completed without sanitizer diagnostics. The complete TSan build also succeeds, but its runtime is blocked by WSL with `FATAL: ThreadSanitizer: unexpected memory mapping`; run TSan in supported CI or a native Linux environment.
+On the validated WSL2 host, fresh ASan and UBSan full builds and their CTest suites produced no sanitizer diagnostics. An intermittent ASan-only 15-second RPC loopback timeout was observed in the existing lifecycle behavior; it is recorded as a deferred pre-existing defect, not masked by retries. The complete TSan build also succeeds, but its threaded runtime is blocked by WSL with `FATAL: ThreadSanitizer: unexpected memory mapping`; run TSan in supported CI or a native Linux environment.

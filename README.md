@@ -249,13 +249,15 @@ ServiceNode {
 
 ## Verification
 
-Stage 0 审计和 Stage 1 验证均在 Ubuntu 24.04.4 WSL2 上完成。Stage 1 已验证完整 Debug 构建、TinyPB smoke、服务发现注册/查询，以及 `rpc_server`/`rpc_client` 本地 loopback；`test/` 下的示例程序仍是手动联调入口，不是自动化测试套件。
+Stage 0 审计、Stage 1 构建闭合和 Stage 2 自动化基线均在 Ubuntu 24.04.4 WSL2 上完成。Stage 2 将 TinyPB、`TcpBuffer`、服务发现和 RPC loopback 注册为 CTest；`test/` 下的服务端/客户端仍保留为可手动联调的入口。
 
 ```text
 1. 安装 Ubuntu/Debian 依赖
 2. 执行 Debug 构建
-3. 运行 tinypb_codec_test 或服务发现启动 smoke test
-4. 按需启动 rpc_service_discovery、rpc_server、rpc_client 手动联调
+3. 运行 CTest 基线：`ctest --test-dir build-stage2-debug --output-on-failure`
+4. 按需启动 `rpc_service_discovery`、`rpc_server`、`rpc_client` 手动联调
+
+已知但尚未修复的行为风险见：[docs/known-regressions.md](docs/known-regressions.md)。
 ```
 
 ## Notes

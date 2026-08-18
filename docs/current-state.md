@@ -26,11 +26,12 @@ The public README describes a working RPC quick start. Stage 1 verification now 
 - The dispatcher registers local services, parses `Service.Method`, deserializes requests, invokes `Service::CallMethod`, serializes responses, and maps several errors into TinyPB response fields.
 - A standalone service-discovery executable listens on query port 8080 and control port 9090 by default. Control commands include `add`, `modify`, `delete`, `heartbeat`, and `lookup`.
 - Service discovery stores one address and `last_seen_ms` per method and lazily removes expired entries on lookup. The RPC dispatcher starts a detached heartbeat thread at approximately half the configured TTL.
-- Protobuf-generated example files and three example executables (`rpc_server`, `rpc_client`, `tinypb_codec_test`) are described in `test/`; `scripts/generate_test_proto.sh` regenerates them with `protoc` and normalizes trailing whitespace; `test_interface` exercises the runtime discovery command helper.
+- Protobuf-generated example files and the example executables (`rpc_server`, `rpc_client`, `tinypb_codec_test`) are described in `test/`; `scripts/generate_test_proto.sh` regenerates them with `protoc` and normalizes trailing whitespace; `test_interface` exercises the runtime discovery command helper.
+- CTest is enabled by default through `BUILD_TESTING`. The Stage 2 baseline registers `unit.tcp_buffer`, `unit.tinypb_codec`, `integration.service_discovery`, and `integration.rpc_loopback`; the integration harness owns child process groups and uses bounded loopback sockets.
 
 ## Partially implemented
 
-- **Build and dependency integration:** CMake checks Protobuf, Threads, `tinyxml.h`, and `libtinyxml` during configuration. Fresh Debug, ASan, UBSan, and TSan configurations build the complete repository; there is still no registered CTest suite or dedicated sanitizer option in the project.
+- **Build and dependency integration:** CMake checks Protobuf, Threads, `tinyxml.h`, and `libtinyxml` during configuration. Fresh Debug, ASan, UBSan, and TSan configurations build the complete repository; sanitizer flags remain supplied by the build invocation rather than a project option.
 - **Reactor model:** The code uses level-triggered epoll by default; no `EPOLLET` is enabled. TCP reads attempt to drain until `EAGAIN`, but accepts, errors, half-close events, and shutdown are not handled consistently.
 - **TCP lifetime:** `TcpConnection::clear()` removes the event registration and changes state but does not close the socket. `IOThreadGroup::~IOThreadGroup()` is empty, and event callbacks capture raw `this` pointers. Shutdown and restart ownership is not defined.
 - **Writes:** The transport has an output buffer and attempts partial-write handling, but the write index is never advanced after `write(2)`, so pending bytes can be sent repeatedly. Completion callbacks are fired even when the connection did not prove that all bytes were delivered.
@@ -41,8 +42,8 @@ The public README describes a working RPC quick start. Stage 1 verification now 
 ## Not implemented or not verified
 
 - No Raft, consensus, replicated state, leader election, persistence, or distributed database functionality exists in this checkout.
-- No automated test runner is configured: there is no `enable_testing()`, `add_test()`, GoogleTest/Catch2 target, or CI configuration.
-- No verified end-to-end RPC test, reconnect test, failure-injection test, service-discovery TTL test, concurrent registry test, or load/stability benchmark is present.
+- No external test framework or CI configuration is present; the repository uses four simple C++ assertion-style executables registered through CTest.
+- The Stage 2 baseline verifies one bounded end-to-end RPC loopback and one service-discovery registration/query flow. Reconnect, failure-injection, service-discovery TTL, concurrent registry, and load/stability coverage remain absent.
 - Checksum integrity is not implemented. The encoder writes the constant value `1` and the decoder only stores it.
 - Protobuf body validity is delegated to the dispatcher; the wire decoder does not distinguish an invalid body until dispatch.
 - Cancellation notification (`RpcController::NotifyOnCancel`) is empty.
@@ -121,10 +122,12 @@ client call
 
 ## Testing gaps
 
-- `test/test_tinypb_coder.cc` is a standalone `assert` program, not a registered test. It covers one round-trip, partial input, sticky packets, and an oversized length header, but not checksum, all malformed field combinations, negative sizes, allocation/capacity edges, or concurrent use.
+- `test/test_tinypb_coder.cc` is registered as `unit.tinypb_codec`. It covers one round-trip, partial input, sticky packets, and an oversized length header, but not checksum, all malformed field combinations, negative sizes, allocation/capacity edges, or concurrent use.
 - `test/test_rpc_server.cc` and `test/test_rpc_client.cc` are manual examples. They require live service discovery, three processes, and fixed local ports. The server example uses a fork/exec restart helper; it is not an automated integration test.
 - `test/test_rpc_client.cc` exercises neither unknown service behavior nor connection failure, timeout, peer close, duplicate message IDs, cancellation, or callback exactly-once semantics.
 - There are no tests for EventLoop cross-thread task ordering, fd reuse, HUP/RDHUP/ERR, partial writes, shutdown, IO-thread teardown, timer cancellation, logger shutdown, or service-center TTL expiration.
+- The known production risks intentionally left for later repair are tracked in [docs/known-regressions.md](known-regressions.md); the Stage 2 tests do not assert those broken behaviors as correct.
+- In Stage 2 sanitizer runs, ASan and UBSan produced no sanitizer diagnostics; ASan did expose an intermittent 15-second RPC loopback timeout in the existing server/client lifecycle, while the same Debug repeat gate remained green. That behavior is deferred with the RPC/lifetime risks rather than hidden by a retry.
 - There are no race, load, fuzz, protocol differential, or long-running heartbeat tests.
 
 ## Build baseline
