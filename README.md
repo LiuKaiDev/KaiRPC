@@ -49,45 +49,38 @@ KaiRPC 是一个基于 Linux epoll 和 Protobuf 实现的轻量级异步 RPC 框
 
 ## Environment
 
-推荐环境：
+本次审计环境：
 
 ```text
-OS: Alibaba Cloud Linux 3 / CentOS-like Linux
-Compiler: GCC / G++ 10+
-Build Tool: CMake
+OS: Ubuntu 24.04.4 LTS under WSL2
+Compiler: GCC / G++ 13.3+
+Build Tool: CMake 3.10+
 Language: C++17
-Dependencies: Protobuf, TinyXML, pthread
+Dependencies: Protobuf 3.x, classic TinyXML 2.x, pthread
 ```
 
-在 Alibaba Cloud Linux / CentOS 系统上可以参考：
+Ubuntu/Debian 安装依赖：
 
 ```bash
-yum install -y gcc gcc-c++ cmake make git
-yum install -y protobuf protobuf-devel protobuf-compiler
-yum install -y tinyxml-devel
+sudo apt-get update
+sudo apt-get install -y build-essential cmake git protobuf-compiler libprotobuf-dev libtinyxml-dev
 ```
 
-如果系统中的 TinyXML 头文件路径为 `/usr/include/tinyxml.h`，项目中应使用：
+KaiRPC 使用 classic TinyXML 的 `<tinyxml.h>` 和 `libtinyxml`，不能用 TinyXML2 替代。CMake 会在配置阶段检查 TinyXML、Protobuf 和 Threads，缺少依赖时会给出安装提示。
 
-```cpp
-#include <tinyxml.h>
-```
+完整构建说明见：[docs/build.md](docs/build.md)
 
 ## Build
 
 ```bash
-chmod +x scripts/build.sh
-./scripts/build.sh
+./scripts/build.sh build
 ```
 
 也可以手动构建：
 
 ```bash
-rm -rf build
-mkdir build
-cd build
-cmake ..
-make -j"$(nproc)"
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build -j"$(nproc)"
 ```
 
 构建完成后，主要可执行文件位于：
@@ -256,22 +249,13 @@ ServiceNode {
 
 ## Verification
 
-本项目已在 Alibaba Cloud Linux 3 环境下完成基础验证：
+Stage 0 审计在 Ubuntu 24.04.4 WSL2 上确认了源码架构和服务发现独立程序的启动/注册查询路径。完整 RPC 构建需要先安装 `libtinyxml-dev`；`test/` 下的示例程序是手动联调入口，不是自动化测试套件。
 
 ```text
-1. 编译生成 libkairpc.a、rpc_service_discovery、rpc_server、rpc_client
-2. 启动 rpc_service_discovery
-3. 启动 rpc_server 并注册 Order.makeOrder / Order.queryOrder
-4. 启动 rpc_client
-5. 客户端成功调用 Order.makeOrder，并收到 Protobuf 响应
-```
-
-示例成功输出：
-
-```text
-call rpc success
-request[price: 100 goods: "apple"]
-response[order_id: "20231015"]
+1. 安装 Ubuntu/Debian 依赖
+2. 执行 Debug 构建
+3. 运行 tinypb_codec_test 或服务发现启动 smoke test
+4. 按需启动 rpc_service_discovery、rpc_server、rpc_client 手动联调
 ```
 
 ## Notes

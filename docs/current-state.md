@@ -8,6 +8,13 @@ KaiRPC is an asynchronous C++17 RPC framework for Linux. It uses an epoll-based 
 
 The public README describes a working RPC quick start, but the current tree does not build that path on the audited environment. Claims below are verified against source and the commands recorded in this document, not inferred from the README.
 
+## Dependencies
+
+- The source uses classic TinyXML 2.x: `#include <tinyxml.h>`, `TiXmlDocument`, `TiXmlElement`, and the `tinyxml` library. TinyXML2 is not compatible with these APIs.
+- Protobuf is consumed through generated service/message headers and the generic service API. The repository expects a Protobuf compiler and development library; the audited host has `protoc`/`libprotobuf` 3.21.12 installed.
+- `pthread` and the standard Linux socket/event libraries come from the normal compiler and libc development environment.
+- On Ubuntu/Debian the missing TinyXML development package is `libtinyxml-dev`. Installation requires `sudo apt-get update && sudo apt-get install -y libtinyxml-dev`; this host has no non-interactive sudo credentials, so it was not installed during Stage 1.
+
 ## Implemented
 
 - CMake declares a static `kairpc` library from `common/`, `net/`, `net/tcp/`, `net/coder/`, and `net/rpc/` sources.
@@ -23,7 +30,7 @@ The public README describes a working RPC quick start, but the current tree does
 
 ## Partially implemented
 
-- **Build and dependency integration:** CMake configures, but the library cannot compile without the TinyXML development header. CMake does not locate or validate dependencies with `find_package`, and warning/sanitizer/test options are absent.
+- **Build and dependency integration:** CMake now checks Protobuf, Threads, `tinyxml.h`, and `libtinyxml` during configuration. The complete build remains blocked until the system TinyXML development package is installed; warning/sanitizer/test options are still absent.
 - **Reactor model:** The code uses level-triggered epoll by default; no `EPOLLET` is enabled. TCP reads attempt to drain until `EAGAIN`, but accepts, errors, half-close events, and shutdown are not handled consistently.
 - **TCP lifetime:** `TcpConnection::clear()` removes the event registration and changes state but does not close the socket. `IOThreadGroup::~IOThreadGroup()` is empty, and event callbacks capture raw `this` pointers. Shutdown and restart ownership is not defined.
 - **Writes:** The transport has an output buffer and attempts partial-write handling, but the write index is never advanced after `write(2)`, so pending bytes can be sent repeatedly. Completion callbacks are fired even when the connection did not prove that all bytes were delivered.
@@ -135,24 +142,25 @@ TinyXML runtime: libtinyxml.so.2.6.2 present; tinyxml.h development header absen
 Commands and results:
 
 ```text
-cmake -S . -B build-stage0 -DCMAKE_BUILD_TYPE=Debug       PASS
-cmake --build build-stage0 -j$(nproc)                    FAIL
+cmake -S . -B build-stage1 -DCMAKE_BUILD_TYPE=Debug       FAIL (expected dependency check)
+cmake --build build-stage1 -j$(nproc)                    NOT RUN (configure stopped)
+./scripts/build.sh build-stage1-script                   FAIL (same configure check)
 ```
 
-The build fails while compiling `common/config.cc`, `common/log.cc`, `net/fd_event.cc`, and `net/eventloop.cc` because `tinyxml.h` cannot be found. CMake still builds the independent `test_interface` and `rpc_service_discovery` executables. The documented `scripts/build.sh` is equivalent to this configure/build path and is expected to fail for the same missing header. The requested `rm -rf build` was not run because the execution safety wrapper rejected the destructive command; fresh ignored directories `build-stage0`, `build-stage0-asan`, and `build-stage0-tsan` were used instead.
+After the Stage 1 CMake change, configuration fails early with an actionable message identifying classic TinyXML and the `libtinyxml-dev` package, instead of reaching a compiler `tinyxml.h` failure. The package could not be installed because `sudo` requires an interactive password in this WSL session. The independent discovery targets were buildable before this change, but the full library and RPC examples remain unverified on this host.
 
-The project does not enable `-Wall`, `-Wextra`, or `-Wpedantic`; `CMAKE_CXX_FLAGS` is empty in the configured Debug build. There is no warning-clean baseline because the primary target stops at the missing dependency.
+The project does not enable `-Wall`, `-Wextra`, or `-Wpedantic`; the full target has no warning baseline because configuration stops at the missing dependency.
 
 ## Sanitizer baseline
 
 ```text
-ASan + UBSan configure/build of rpc_service_discovery: PASS
-ASan + UBSan add/lookup smoke: PASS, no sanitizer diagnostic
-TSan configure/build of rpc_service_discovery: PASS
-TSan runtime: FAIL, exit 66: "FATAL: ThreadSanitizer: unexpected memory mapping ..."
+ASan + UBSan full-project configure/build: NOT RUN (TinyXML dependency blocker)
+ASan + UBSan service-discovery target/smoke: PASS in Stage 0, no diagnostic
+TSan full-project configure/build: NOT RUN (TinyXML dependency blocker)
+TSan service-discovery runtime: FAIL, exit 66: "FATAL: ThreadSanitizer: unexpected memory mapping ..."
 ```
 
-Only the independently buildable service-discovery executable was sanitized. The main `kairpc` library and RPC examples could not receive a sanitizer baseline until the TinyXML development dependency is available. The TSan failure is environmental in this WSL run and is not evidence that the application is race-free.
+Only the independently buildable service-discovery executable was sanitized. The main `kairpc` library and RPC examples require `libtinyxml-dev` before a full sanitizer baseline can run. The TSan failure is environmental in this WSL run and is not evidence that the application is race-free.
 
 ## Technical debt
 
