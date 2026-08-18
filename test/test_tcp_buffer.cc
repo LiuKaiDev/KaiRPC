@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 
+#include "config.h"
+#include "log.h"
 #include "tcp/tcp_buffer.h"
 
 namespace {
@@ -23,6 +25,22 @@ bool hasContents(talon::TcpBuffer& buffer, const std::string& expected) {
 }  // namespace
 
 int main() {
+    talon::Config::SetGlobalConfig(nullptr);
+    talon::Logger::InitGlobalLogger(0);
+
+    talon::TcpBuffer exact_capacity(8);
+    exact_capacity.moveWriteIndex(exact_capacity.writeAble());
+    if (!require(exact_capacity.writeIndex() == 8,
+                 "exact-capacity advancement reaches the buffer end") ||
+        !require(exact_capacity.readAble() == 8,
+                 "exact-capacity advancement makes all bytes readable") ||
+        !require(exact_capacity.readIndex() <= exact_capacity.writeIndex() &&
+                     exact_capacity.writeIndex() <=
+                         static_cast<int>(exact_capacity.m_buffer.size()),
+                 "exact-capacity advancement preserves index invariants")) {
+        return 1;
+    }
+
     talon::TcpBuffer buffer(8);
     if (!require(buffer.readAble() == 0, "new buffers are empty") ||
         !require(buffer.writeAble() == 8, "new buffers expose capacity")) {

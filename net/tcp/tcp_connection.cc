@@ -4,6 +4,8 @@
 
 #include "tcp_connection.h"
 
+#include <cerrno>
+#include <cstring>
 #include <utility>
 #include "unistd.h"
 #include "fd_event_group.h"
@@ -162,7 +164,8 @@ namespace talon {
             return;
         }
 
-        if (m_connection_type == TcpConnectionByClient) {
+        if (m_connection_type == TcpConnectionByClient &&
+            m_out_buffer->readAble() == 0) {
             //  1. 将 message encode 得到字节流
             // 2. 将字节流入到 buffer 里面，然后全部发送
 
@@ -175,7 +178,7 @@ namespace talon {
             m_coder->encode(messages, m_out_buffer);
         }
 
-        bool is_write_all = false;
+        bool is_write_all = m_out_buffer->readAble() == 0;
         while(true) {
             if (m_out_buffer->readAble() == 0) {
                 DEBUGLOG("no data need to send to client [%s]", m_peer_addr->toString().c_str());
@@ -185,25 +188,27 @@ namespace talon {
             int write_size = m_out_buffer->readAble();
             int read_index = m_out_buffer->readIndex();
 
-            int rt = write(m_fd, &(m_out_buffer->m_buffer[read_index]), write_size);
+            ssize_t rt = write(m_fd, &(m_out_buffer->m_buffer[read_index]), write_size);
 
-            if (rt >= write_size) {
-                DEBUGLOG("no data need to send to client [%s]", m_peer_addr->toString().c_str());
-                is_write_all = true;
-                break;
-            } if (rt == -1 && errno == EAGAIN) {
+            if (rt > 0) {
+                m_out_buffer->moveReadIndex(static_cast<int>(rt));
+                continue;
+            }
+            if (rt == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
                 // 发送缓冲区已满，不能再发送了。
                 // 这种情况我们等下次 fd 可写的时候再次发送数据即可
                 ERRORLOG("write data error, errno==EAGIN and rt == -1");
-                break;
+            } else if (rt < 0) {
+                ERRORLOG("write data error, errno=%d, error=%s", errno, strerror(errno));
             }
+            break;
         }
         if (is_write_all) {
             m_fd_event->cancle(Fd_Event::OUT_EVENT);
             m_event_loop->addEpollEvent(m_fd_event);
         }
 
-        if (m_connection_type == TcpConnectionByClient) {
+        if (m_connection_type == TcpConnectionByClient && is_write_all) {
             for (auto & m_write_done : m_write_dones) {
                 m_write_done.second(m_write_done.first);
             }

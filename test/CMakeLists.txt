@@ -29,6 +29,10 @@ if(BUILD_TESTING)
         test_tcp_buffer.cc
     )
 
+    add_executable(tcp_write_path_test
+        test_tcp_write_path.cc
+    )
+
     add_executable(service_discovery_integration_test
         test_service_discovery_integration.cc
     )
@@ -45,9 +49,13 @@ target_link_libraries(tinypb_codec_test PRIVATE kairpc)
 
 if(BUILD_TESTING)
     target_link_libraries(tcp_buffer_test PRIVATE kairpc)
+    target_link_libraries(tcp_write_path_test PRIVATE kairpc)
 
     add_test(NAME unit.tcp_buffer COMMAND tcp_buffer_test)
     add_test(NAME unit.tinypb_codec COMMAND tinypb_codec_test)
+    add_test(NAME unit.tcp_write.complete COMMAND tcp_write_path_test complete)
+    add_test(NAME unit.tcp_write.partial COMMAND tcp_write_path_test partial)
+    add_test(NAME unit.tcp_write.eagain COMMAND tcp_write_path_test eagain)
     add_test(
         NAME integration.service_discovery
         COMMAND service_discovery_integration_test
@@ -71,6 +79,15 @@ if(BUILD_TESTING)
         unit.tinypb_codec
         PROPERTIES
             LABELS "unit;codec"
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    )
+    set_tests_properties(
+        unit.tcp_write.complete
+        unit.tcp_write.partial
+        unit.tcp_write.eagain
+        PROPERTIES
+            LABELS "unit;tcp-write"
+            TIMEOUT 15
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     )
     set_tests_properties(

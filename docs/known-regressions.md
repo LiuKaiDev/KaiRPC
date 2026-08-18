@@ -1,31 +1,40 @@
 # Known Regressions
 
-This inventory records behavior that is intentionally preserved by the Stage 2
-baseline. The CTest suite detects the currently supported paths; it does not
-turn these observations into production fixes.
+This inventory records known behavior and the regression stage responsible for
+each item. Fixed entries retain their root cause and regression evidence;
+remaining entries stay open for their planned stages.
 
 ## Transport and ownership
 
 ### BUG-TCP-001: `onWrite` does not advance the output read index
 
-- **Current observation:** `TcpConnection::onWrite()` writes from the output
-  buffer but does not move its read index by the number of bytes accepted.
-- **Risk:** A later writable event can resend bytes, duplicate application
-  data, or report completion while bytes remain queued.
-- **Future test idea:** Use a socketpair with a forced partial write and assert
-  that each byte is emitted once and the completion callback waits for the
-  entire range.
-- **Planned stage/category:** Stage 4, transport write correctness.
+- **Status:** FIXED in Stage 3 (`fix(tcp): correct buffer and partial-write
+  handling`).
+- **Root cause:** `TcpConnection::onWrite()` did not advance the output read
+  index after a successful `write()`, so a partial or repeated writable
+  callback restarted at the already-sent prefix.
+- **Regression tests:** `unit.tcp_write.complete`, `unit.tcp_write.partial`,
+  and `unit.tcp_write.eagain` use a nonblocking socketpair to cover complete
+  writes, deterministic partial writes, repeated callbacks, ordering, and
+  EAGAIN retry behavior.
+- **Production fix:** Advance the output read index by exactly the positive
+  syscall return value, retain the unwritten suffix, and remove writable
+  interest or run client completion callbacks only after the buffer drains.
+- **Invariant:** If `write(fd, data, N)` returns `K > 0`, exactly `K` readable
+  bytes are consumed; EAGAIN consumes none; completed output cannot be resent.
 
 ### BUG-TCPBUFFER-001: exact-capacity `moveWriteIndex` fails
 
-- **Current observation:** `TcpBuffer::moveWriteIndex()` rejects an index that
-  lands exactly at the vector capacity (`>=` instead of `>`).
-- **Risk:** A read that fills the available buffer can leave the write index
-  stale and corrupt subsequent TinyPB framing.
-- **Future test idea:** Fill a buffer exactly, move the write index to the end,
-  and verify the readable byte count and decoded packet.
-- **Planned stage/category:** Stage 4, TCP buffer boundary correctness.
+- **Status:** FIXED in Stage 3 (`fix(tcp): correct buffer and partial-write
+  handling`).
+- **Root cause:** `TcpBuffer::moveWriteIndex()` rejected a write index equal to
+  the vector capacity because its boundary check used `>=`.
+- **Regression test:** `unit.tcp_buffer` advances by exactly `writeAble()` and
+  verifies the resulting indexes and readable byte count.
+- **Production fix:** Validate the requested advancement against
+  `writeAble()` and allow equality before advancing the write index.
+- **Invariant:** `0 <= read_index <= write_index <= capacity`; advancing by
+  the full writable count is legal, while advancing beyond it is rejected.
 
 ### BUG-FD-001: close ownership is incomplete
 

@@ -103,12 +103,11 @@ namespace talon {
     }
 
     void TcpBuffer::moveWriteIndex(int size) {
-        size_t j = m_write_index + size;
-        if (j >= m_buffer.size()) {
-            ERRORLOG("moveWriteIndex error, invalid size %d, old_read_index %d, buffer size %d", size, m_read_index, m_buffer.size());
+        if (size < 0 || size > writeAble()) {
+            ERRORLOG("moveWriteIndex error, invalid size %d, old_write_index %d, buffer size %d", size, m_write_index, static_cast<int>(m_buffer.size()));
             return;
         }
-        m_write_index = j;
+        m_write_index += size;
         adjustBuffer();
 
     }
