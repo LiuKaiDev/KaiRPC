@@ -249,7 +249,7 @@ ServiceNode {
 
 ## Verification
 
-Stage 0 审计在 Ubuntu 24.04.4 WSL2 上确认了源码架构和服务发现独立程序的启动/注册查询路径。完整 RPC 构建需要先安装 `libtinyxml-dev`；`test/` 下的示例程序是手动联调入口，不是自动化测试套件。
+Stage 0 审计和 Stage 1 验证均在 Ubuntu 24.04.4 WSL2 上完成。Stage 1 已验证完整 Debug 构建、TinyPB smoke、服务发现注册/查询，以及 `rpc_server`/`rpc_client` 本地 loopback；`test/` 下的示例程序仍是手动联调入口，不是自动化测试套件。
 
 ```text
 1. 安装 Ubuntu/Debian 依赖
@@ -264,9 +264,10 @@ Stage 0 审计在 Ubuntu 24.04.4 WSL2 上确认了源码架构和服务发现独
 - 如果修改了 `test/order.proto`，需要重新生成 Protobuf 文件：
 
 ```bash
-cd test
-protoc --cpp_out=. order.proto
+./scripts/generate_test_proto.sh
 ```
+
+脚本使用 `protoc 3.21.12`，并在写入提交的 `.pb.cc/.pb.h` 文件前移除生成输出中的 trailing whitespace，以保持可重复的 canonical 内容。
 
 - 如果服务端或客户端无法连接服务发现中心，请先检查 `conf/service_center.conf`、`conf/kairpc.xml` 和 `conf/kairpc_client.xml` 中的 IP 与端口配置
 - 如果客户端找不到服务，请确认启动顺序为：

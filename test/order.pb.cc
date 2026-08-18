@@ -5,344 +5,257 @@
 
 #include <algorithm>
 
-#include <google/protobuf/stubs/common.h>
-#include <google/protobuf/stubs/port.h>
-#include <google/protobuf/stubs/once.h>
 #include <google/protobuf/io/coded_stream.h>
-#include <google/protobuf/wire_format_lite_inl.h>
+#include <google/protobuf/extension_set.h>
+#include <google/protobuf/wire_format_lite.h>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/generated_message_reflection.h>
 #include <google/protobuf/reflection_ops.h>
 #include <google/protobuf/wire_format.h>
-// This is a temporary google only hack
-#ifdef GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
-#include "third_party/protobuf/version.h"
-#endif
 // @@protoc_insertion_point(includes)
-class makeOrderRequestDefaultTypeInternal {
- public:
-  ::google::protobuf::internal::ExplicitlyConstructed<makeOrderRequest>
-      _instance;
-} _makeOrderRequest_default_instance_;
-class makeOrderResponseDefaultTypeInternal {
- public:
-  ::google::protobuf::internal::ExplicitlyConstructed<makeOrderResponse>
-      _instance;
-} _makeOrderResponse_default_instance_;
-namespace protobuf_order_2eproto {
-void InitDefaultsmakeOrderRequestImpl() {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
+#include <google/protobuf/port_def.inc>
 
-#ifdef GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
-  ::google::protobuf::internal::InitProtobufDefaultsForceUnique();
-#else
-  ::google::protobuf::internal::InitProtobufDefaults();
-#endif  // GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
-  {
-    void* ptr = &::_makeOrderRequest_default_instance_;
-    new (ptr) ::makeOrderRequest();
-    ::google::protobuf::internal::OnShutdownDestroyMessage(ptr);
-  }
-  ::makeOrderRequest::InitAsDefaultInstance();
-}
+PROTOBUF_PRAGMA_INIT_SEG
 
-void InitDefaultsmakeOrderRequest() {
-  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
-  ::google::protobuf::GoogleOnceInit(&once, &InitDefaultsmakeOrderRequestImpl);
-}
+namespace _pb = ::PROTOBUF_NAMESPACE_ID;
+namespace _pbi = _pb::internal;
 
-void InitDefaultsmakeOrderResponseImpl() {
-  GOOGLE_PROTOBUF_VERIFY_VERSION;
-
-#ifdef GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
-  ::google::protobuf::internal::InitProtobufDefaultsForceUnique();
-#else
-  ::google::protobuf::internal::InitProtobufDefaults();
-#endif  // GOOGLE_PROTOBUF_ENFORCE_UNIQUENESS
-  {
-    void* ptr = &::_makeOrderResponse_default_instance_;
-    new (ptr) ::makeOrderResponse();
-    ::google::protobuf::internal::OnShutdownDestroyMessage(ptr);
-  }
-  ::makeOrderResponse::InitAsDefaultInstance();
-}
-
-void InitDefaultsmakeOrderResponse() {
-  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
-  ::google::protobuf::GoogleOnceInit(&once, &InitDefaultsmakeOrderResponseImpl);
-}
-
-::google::protobuf::Metadata file_level_metadata[2];
-const ::google::protobuf::ServiceDescriptor* file_level_service_descriptors[1];
-
-const ::google::protobuf::uint32 TableStruct::offsets[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-  ~0u,  // no _has_bits_
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::makeOrderRequest, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::makeOrderRequest, price_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::makeOrderRequest, goods_),
-  ~0u,  // no _has_bits_
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::makeOrderResponse, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::makeOrderResponse, ret_code_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::makeOrderResponse, res_info_),
-  GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(::makeOrderResponse, order_id_),
-};
-static const ::google::protobuf::internal::MigrationSchema schemas[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-  { 0, -1, sizeof(::makeOrderRequest)},
-  { 7, -1, sizeof(::makeOrderResponse)},
-};
-
-static ::google::protobuf::Message const * const file_default_instances[] = {
-  reinterpret_cast<const ::google::protobuf::Message*>(&::_makeOrderRequest_default_instance_),
-  reinterpret_cast<const ::google::protobuf::Message*>(&::_makeOrderResponse_default_instance_),
-};
-
-void protobuf_AssignDescriptors() {
-  AddDescriptors();
-  ::google::protobuf::MessageFactory* factory = NULL;
-  AssignDescriptors(
-      "order.proto", schemas, file_default_instances, TableStruct::offsets, factory,
-      file_level_metadata, NULL, file_level_service_descriptors);
-}
-
-void protobuf_AssignDescriptorsOnce() {
-  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
-  ::google::protobuf::GoogleOnceInit(&once, &protobuf_AssignDescriptors);
-}
-
-void protobuf_RegisterTypes(const ::std::string&) GOOGLE_PROTOBUF_ATTRIBUTE_COLD;
-void protobuf_RegisterTypes(const ::std::string&) {
-  protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::internal::RegisterAllTypes(file_level_metadata, 2);
-}
-
-void AddDescriptorsImpl() {
-  InitDefaults();
-  static const char descriptor[] GOOGLE_PROTOBUF_ATTRIBUTE_SECTION_VARIABLE(protodesc_cold) = {
-      "\n\013order.proto\"0\n\020makeOrderRequest\022\r\n\005pri"
-      "ce\030\001 \001(\005\022\r\n\005goods\030\002 \001(\t\"I\n\021makeOrderResp"
-      "onse\022\020\n\010ret_code\030\001 \001(\005\022\020\n\010res_info\030\002 \001(\t"
-      "\022\020\n\010order_id\030\003 \001(\t2p\n\005Order\0222\n\tmakeOrder"
-      "\022\021.makeOrderRequest\032\022.makeOrderResponse\022"
-      "3\n\nqueryOrder\022\021.makeOrderRequest\032\022.makeO"
-      "rderResponseB\003\200\001\001b\006proto3"
+PROTOBUF_CONSTEXPR makeOrderRequest::makeOrderRequest(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.goods_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.price_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct makeOrderRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR makeOrderRequestDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~makeOrderRequestDefaultTypeInternal() {}
+  union {
+    makeOrderRequest _instance;
   };
-  ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
-      descriptor, 265);
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
-    "order.proto", &protobuf_RegisterTypes);
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 makeOrderRequestDefaultTypeInternal _makeOrderRequest_default_instance_;
+PROTOBUF_CONSTEXPR makeOrderResponse::makeOrderResponse(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.res_info_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.order_id_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.ret_code_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct makeOrderResponseDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR makeOrderResponseDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~makeOrderResponseDefaultTypeInternal() {}
+  union {
+    makeOrderResponse _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 makeOrderResponseDefaultTypeInternal _makeOrderResponse_default_instance_;
+static ::_pb::Metadata file_level_metadata_order_2eproto[2];
+static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_order_2eproto = nullptr;
+static const ::_pb::ServiceDescriptor* file_level_service_descriptors_order_2eproto[1];
+
+const uint32_t TableStruct_order_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::makeOrderRequest, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::makeOrderRequest, _impl_.price_),
+  PROTOBUF_FIELD_OFFSET(::makeOrderRequest, _impl_.goods_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::makeOrderResponse, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::makeOrderResponse, _impl_.ret_code_),
+  PROTOBUF_FIELD_OFFSET(::makeOrderResponse, _impl_.res_info_),
+  PROTOBUF_FIELD_OFFSET(::makeOrderResponse, _impl_.order_id_),
+};
+static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
+  { 0, -1, -1, sizeof(::makeOrderRequest)},
+  { 8, -1, -1, sizeof(::makeOrderResponse)},
+};
+
+static const ::_pb::Message* const file_default_instances[] = {
+  &::_makeOrderRequest_default_instance_._instance,
+  &::_makeOrderResponse_default_instance_._instance,
+};
+
+const char descriptor_table_protodef_order_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
+  "\n\013order.proto\"0\n\020makeOrderRequest\022\r\n\005pri"
+  "ce\030\001 \001(\005\022\r\n\005goods\030\002 \001(\t\"I\n\021makeOrderResp"
+  "onse\022\020\n\010ret_code\030\001 \001(\005\022\020\n\010res_info\030\002 \001(\t"
+  "\022\020\n\010order_id\030\003 \001(\t2p\n\005Order\0222\n\tmakeOrder"
+  "\022\021.makeOrderRequest\032\022.makeOrderResponse\022"
+  "3\n\nqueryOrder\022\021.makeOrderRequest\032\022.makeO"
+  "rderResponseB\003\200\001\001b\006proto3"
+  ;
+static ::_pbi::once_flag descriptor_table_order_2eproto_once;
+const ::_pbi::DescriptorTable descriptor_table_order_2eproto = {
+    false, false, 265, descriptor_table_protodef_order_2eproto,
+    "order.proto",
+    &descriptor_table_order_2eproto_once, nullptr, 0, 2,
+    schemas, file_default_instances, TableStruct_order_2eproto::offsets,
+    file_level_metadata_order_2eproto, file_level_enum_descriptors_order_2eproto,
+    file_level_service_descriptors_order_2eproto,
+};
+PROTOBUF_ATTRIBUTE_WEAK const ::_pbi::DescriptorTable* descriptor_table_order_2eproto_getter() {
+  return &descriptor_table_order_2eproto;
 }
 
-void AddDescriptors() {
-  static GOOGLE_PROTOBUF_DECLARE_ONCE(once);
-  ::google::protobuf::GoogleOnceInit(&once, &AddDescriptorsImpl);
-}
-// Force AddDescriptors() to be called at dynamic initialization time.
-struct StaticDescriptorInitializer {
-  StaticDescriptorInitializer() {
-    AddDescriptors();
-  }
-} static_descriptor_initializer;
-}  // namespace protobuf_order_2eproto
+// Force running AddDescriptors() at dynamic initialization time.
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::_pbi::AddDescriptorsRunner dynamic_init_dummy_order_2eproto(&descriptor_table_order_2eproto);
 
 // ===================================================================
 
-void makeOrderRequest::InitAsDefaultInstance() {
-}
-#if !defined(_MSC_VER) || _MSC_VER >= 1900
-const int makeOrderRequest::kPriceFieldNumber;
-const int makeOrderRequest::kGoodsFieldNumber;
-#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+class makeOrderRequest::_Internal {
+ public:
+};
 
-makeOrderRequest::makeOrderRequest()
-  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
-  if (GOOGLE_PREDICT_TRUE(this != internal_default_instance())) {
-    ::protobuf_order_2eproto::InitDefaultsmakeOrderRequest();
-  }
-  SharedCtor();
-  // @@protoc_insertion_point(constructor:makeOrderRequest)
+makeOrderRequest::makeOrderRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:makeOrderRequest)
 }
 makeOrderRequest::makeOrderRequest(const makeOrderRequest& from)
-  : ::google::protobuf::Message(),
-      _internal_metadata_(NULL),
-      _cached_size_(0) {
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  goods_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (from.goods().size() > 0) {
-    goods_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.goods_);
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  makeOrderRequest* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.goods_){}
+    , decltype(_impl_.price_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  _impl_.goods_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.goods_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (!from._internal_goods().empty()) {
+    _this->_impl_.goods_.Set(from._internal_goods(),
+      _this->GetArenaForAllocation());
   }
-  price_ = from.price_;
+  _this->_impl_.price_ = from._impl_.price_;
   // @@protoc_insertion_point(copy_constructor:makeOrderRequest)
 }
 
-void makeOrderRequest::SharedCtor() {
-  goods_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  price_ = 0;
-  _cached_size_ = 0;
+inline void makeOrderRequest::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.goods_){}
+    , decltype(_impl_.price_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+  _impl_.goods_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.goods_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
 
 makeOrderRequest::~makeOrderRequest() {
   // @@protoc_insertion_point(destructor:makeOrderRequest)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
   SharedDtor();
 }
 
-void makeOrderRequest::SharedDtor() {
-  goods_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline void makeOrderRequest::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  _impl_.goods_.Destroy();
 }
 
 void makeOrderRequest::SetCachedSize(int size) const {
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-}
-const ::google::protobuf::Descriptor* makeOrderRequest::descriptor() {
-  ::protobuf_order_2eproto::protobuf_AssignDescriptorsOnce();
-  return ::protobuf_order_2eproto::file_level_metadata[kIndexInFileMessages].descriptor;
-}
-
-const makeOrderRequest& makeOrderRequest::default_instance() {
-  ::protobuf_order_2eproto::InitDefaultsmakeOrderRequest();
-  return *internal_default_instance();
-}
-
-makeOrderRequest* makeOrderRequest::New(::google::protobuf::Arena* arena) const {
-  makeOrderRequest* n = new makeOrderRequest;
-  if (arena != NULL) {
-    arena->Own(n);
-  }
-  return n;
+  _impl_._cached_size_.Set(size);
 }
 
 void makeOrderRequest::Clear() {
 // @@protoc_insertion_point(message_clear_start:makeOrderRequest)
-  ::google::protobuf::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  goods_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  price_ = 0;
-  _internal_metadata_.Clear();
+  _impl_.goods_.ClearToEmpty();
+  _impl_.price_ = 0;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-bool makeOrderRequest::MergePartialFromCodedStream(
-    ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
-  ::google::protobuf::uint32 tag;
-  // @@protoc_insertion_point(parse_start:makeOrderRequest)
-  for (;;) {
-    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
-    tag = p.first;
-    if (!p.second) goto handle_unusual;
-    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+const char* makeOrderRequest::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
       // int32 price = 1;
-      case 1: {
-        if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(8u /* 8 & 0xFF */)) {
-
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
-                 input, &price_)));
-        } else {
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.price_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
           goto handle_unusual;
-        }
-        break;
-      }
-
+        continue;
       // string goods = 2;
-      case 2: {
-        if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(18u /* 18 & 0xFF */)) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_goods()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->goods().data(), static_cast<int>(this->goods().length()),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "makeOrderRequest.goods"));
-        } else {
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          auto str = _internal_mutable_goods();
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+          CHK_(::_pbi::VerifyUTF8(str, "makeOrderRequest.goods"));
+        } else
           goto handle_unusual;
-        }
-        break;
-      }
-
-      default: {
-      handle_unusual:
-        if (tag == 0) {
-          goto success;
-        }
-        DO_(::google::protobuf::internal::WireFormat::SkipField(
-              input, tag, _internal_metadata_.mutable_unknown_fields()));
-        break;
-      }
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
     }
-  }
-success:
-  // @@protoc_insertion_point(parse_success:makeOrderRequest)
-  return true;
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
 failure:
-  // @@protoc_insertion_point(parse_failure:makeOrderRequest)
-  return false;
-#undef DO_
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
 }
 
-void makeOrderRequest::SerializeWithCachedSizes(
-    ::google::protobuf::io::CodedOutputStream* output) const {
-  // @@protoc_insertion_point(serialize_start:makeOrderRequest)
-  ::google::protobuf::uint32 cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  // int32 price = 1;
-  if (this->price() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(1, this->price(), output);
-  }
-
-  // string goods = 2;
-  if (this->goods().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->goods().data(), static_cast<int>(this->goods().length()),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "makeOrderRequest.goods");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      2, this->goods(), output);
-  }
-
-  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
-    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
-        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), output);
-  }
-  // @@protoc_insertion_point(serialize_end:makeOrderRequest)
-}
-
-::google::protobuf::uint8* makeOrderRequest::InternalSerializeWithCachedSizesToArray(
-    bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
+uint8_t* makeOrderRequest::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
   // @@protoc_insertion_point(serialize_to_array_start:makeOrderRequest)
-  ::google::protobuf::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   // int32 price = 1;
-  if (this->price() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(1, this->price(), target);
+  if (this->_internal_price() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(1, this->_internal_price(), target);
   }
 
   // string goods = 2;
-  if (this->goods().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->goods().data(), static_cast<int>(this->goods().length()),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+  if (!this->_internal_goods().empty()) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_goods().data(), static_cast<int>(this->_internal_goods().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
       "makeOrderRequest.goods");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        2, this->goods(), target);
+    target = stream->WriteStringMaybeAliased(
+        2, this->_internal_goods(), target);
   }
 
-  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
-    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
-        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), target);
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
   // @@protoc_insertion_point(serialize_to_array_end:makeOrderRequest)
   return target;
@@ -352,68 +265,47 @@ size_t makeOrderRequest::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:makeOrderRequest)
   size_t total_size = 0;
 
-  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
-    total_size +=
-      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
-        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()));
-  }
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
   // string goods = 2;
-  if (this->goods().size() > 0) {
+  if (!this->_internal_goods().empty()) {
     total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->goods());
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_goods());
   }
 
   // int32 price = 1;
-  if (this->price() != 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::Int32Size(
-        this->price());
+  if (this->_internal_price() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_price());
   }
 
-  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = cached_size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-  return total_size;
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
-void makeOrderRequest::MergeFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:makeOrderRequest)
-  GOOGLE_DCHECK_NE(&from, this);
-  const makeOrderRequest* source =
-      ::google::protobuf::internal::DynamicCastToGenerated<const makeOrderRequest>(
-          &from);
-  if (source == NULL) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:makeOrderRequest)
-    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
-  } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:makeOrderRequest)
-    MergeFrom(*source);
-  }
-}
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData makeOrderRequest::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    makeOrderRequest::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*makeOrderRequest::GetClassData() const { return &_class_data_; }
 
-void makeOrderRequest::MergeFrom(const makeOrderRequest& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:makeOrderRequest)
-  GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  ::google::protobuf::uint32 cached_has_bits = 0;
+
+void makeOrderRequest::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<makeOrderRequest*>(&to_msg);
+  auto& from = static_cast<const makeOrderRequest&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:makeOrderRequest)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.goods().size() > 0) {
-
-    goods_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.goods_);
+  if (!from._internal_goods().empty()) {
+    _this->_internal_set_goods(from._internal_goods());
   }
-  if (from.price() != 0) {
-    set_price(from.price());
+  if (from._internal_price() != 0) {
+    _this->_internal_set_price(from._internal_price());
   }
-}
-
-void makeOrderRequest::CopyFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:makeOrderRequest)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void makeOrderRequest::CopyFrom(const makeOrderRequest& from) {
@@ -427,262 +319,209 @@ bool makeOrderRequest::IsInitialized() const {
   return true;
 }
 
-void makeOrderRequest::Swap(makeOrderRequest* other) {
-  if (other == this) return;
-  InternalSwap(other);
-}
 void makeOrderRequest::InternalSwap(makeOrderRequest* other) {
   using std::swap;
-  goods_.Swap(&other->goods_);
-  swap(price_, other->price_);
-  _internal_metadata_.Swap(&other->_internal_metadata_);
-  swap(_cached_size_, other->_cached_size_);
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.goods_, lhs_arena,
+      &other->_impl_.goods_, rhs_arena
+  );
+  swap(_impl_.price_, other->_impl_.price_);
 }
 
-::google::protobuf::Metadata makeOrderRequest::GetMetadata() const {
-  protobuf_order_2eproto::protobuf_AssignDescriptorsOnce();
-  return ::protobuf_order_2eproto::file_level_metadata[kIndexInFileMessages];
+::PROTOBUF_NAMESPACE_ID::Metadata makeOrderRequest::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_order_2eproto_getter, &descriptor_table_order_2eproto_once,
+      file_level_metadata_order_2eproto[0]);
 }
-
 
 // ===================================================================
 
-void makeOrderResponse::InitAsDefaultInstance() {
-}
-#if !defined(_MSC_VER) || _MSC_VER >= 1900
-const int makeOrderResponse::kRetCodeFieldNumber;
-const int makeOrderResponse::kResInfoFieldNumber;
-const int makeOrderResponse::kOrderIdFieldNumber;
-#endif  // !defined(_MSC_VER) || _MSC_VER >= 1900
+class makeOrderResponse::_Internal {
+ public:
+};
 
-makeOrderResponse::makeOrderResponse()
-  : ::google::protobuf::Message(), _internal_metadata_(NULL) {
-  if (GOOGLE_PREDICT_TRUE(this != internal_default_instance())) {
-    ::protobuf_order_2eproto::InitDefaultsmakeOrderResponse();
-  }
-  SharedCtor();
-  // @@protoc_insertion_point(constructor:makeOrderResponse)
+makeOrderResponse::makeOrderResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:makeOrderResponse)
 }
 makeOrderResponse::makeOrderResponse(const makeOrderResponse& from)
-  : ::google::protobuf::Message(),
-      _internal_metadata_(NULL),
-      _cached_size_(0) {
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  res_info_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (from.res_info().size() > 0) {
-    res_info_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.res_info_);
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  makeOrderResponse* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.res_info_){}
+    , decltype(_impl_.order_id_){}
+    , decltype(_impl_.ret_code_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  _impl_.res_info_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.res_info_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (!from._internal_res_info().empty()) {
+    _this->_impl_.res_info_.Set(from._internal_res_info(),
+      _this->GetArenaForAllocation());
   }
-  order_id_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  if (from.order_id().size() > 0) {
-    order_id_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.order_id_);
+  _impl_.order_id_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.order_id_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (!from._internal_order_id().empty()) {
+    _this->_impl_.order_id_.Set(from._internal_order_id(),
+      _this->GetArenaForAllocation());
   }
-  ret_code_ = from.ret_code_;
+  _this->_impl_.ret_code_ = from._impl_.ret_code_;
   // @@protoc_insertion_point(copy_constructor:makeOrderResponse)
 }
 
-void makeOrderResponse::SharedCtor() {
-  res_info_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  order_id_.UnsafeSetDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  ret_code_ = 0;
-  _cached_size_ = 0;
+inline void makeOrderResponse::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.res_info_){}
+    , decltype(_impl_.order_id_){}
+    , decltype(_impl_.ret_code_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+  _impl_.res_info_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.res_info_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  _impl_.order_id_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.order_id_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
 
 makeOrderResponse::~makeOrderResponse() {
   // @@protoc_insertion_point(destructor:makeOrderResponse)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
   SharedDtor();
 }
 
-void makeOrderResponse::SharedDtor() {
-  res_info_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  order_id_.DestroyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline void makeOrderResponse::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  _impl_.res_info_.Destroy();
+  _impl_.order_id_.Destroy();
 }
 
 void makeOrderResponse::SetCachedSize(int size) const {
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-}
-const ::google::protobuf::Descriptor* makeOrderResponse::descriptor() {
-  ::protobuf_order_2eproto::protobuf_AssignDescriptorsOnce();
-  return ::protobuf_order_2eproto::file_level_metadata[kIndexInFileMessages].descriptor;
-}
-
-const makeOrderResponse& makeOrderResponse::default_instance() {
-  ::protobuf_order_2eproto::InitDefaultsmakeOrderResponse();
-  return *internal_default_instance();
-}
-
-makeOrderResponse* makeOrderResponse::New(::google::protobuf::Arena* arena) const {
-  makeOrderResponse* n = new makeOrderResponse;
-  if (arena != NULL) {
-    arena->Own(n);
-  }
-  return n;
+  _impl_._cached_size_.Set(size);
 }
 
 void makeOrderResponse::Clear() {
 // @@protoc_insertion_point(message_clear_start:makeOrderResponse)
-  ::google::protobuf::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  res_info_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  order_id_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
-  ret_code_ = 0;
-  _internal_metadata_.Clear();
+  _impl_.res_info_.ClearToEmpty();
+  _impl_.order_id_.ClearToEmpty();
+  _impl_.ret_code_ = 0;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-bool makeOrderResponse::MergePartialFromCodedStream(
-    ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!GOOGLE_PREDICT_TRUE(EXPRESSION)) goto failure
-  ::google::protobuf::uint32 tag;
-  // @@protoc_insertion_point(parse_start:makeOrderResponse)
-  for (;;) {
-    ::std::pair< ::google::protobuf::uint32, bool> p = input->ReadTagWithCutoffNoLastTag(127u);
-    tag = p.first;
-    if (!p.second) goto handle_unusual;
-    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+const char* makeOrderResponse::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
       // int32 ret_code = 1;
-      case 1: {
-        if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(8u /* 8 & 0xFF */)) {
-
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
-                 input, &ret_code_)));
-        } else {
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.ret_code_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
           goto handle_unusual;
-        }
-        break;
-      }
-
+        continue;
       // string res_info = 2;
-      case 2: {
-        if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(18u /* 18 & 0xFF */)) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_res_info()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->res_info().data(), static_cast<int>(this->res_info().length()),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "makeOrderResponse.res_info"));
-        } else {
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          auto str = _internal_mutable_res_info();
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+          CHK_(::_pbi::VerifyUTF8(str, "makeOrderResponse.res_info"));
+        } else
           goto handle_unusual;
-        }
-        break;
-      }
-
+        continue;
       // string order_id = 3;
-      case 3: {
-        if (static_cast< ::google::protobuf::uint8>(tag) ==
-            static_cast< ::google::protobuf::uint8>(26u /* 26 & 0xFF */)) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_order_id()));
-          DO_(::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-            this->order_id().data(), static_cast<int>(this->order_id().length()),
-            ::google::protobuf::internal::WireFormatLite::PARSE,
-            "makeOrderResponse.order_id"));
-        } else {
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+          auto str = _internal_mutable_order_id();
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+          CHK_(::_pbi::VerifyUTF8(str, "makeOrderResponse.order_id"));
+        } else
           goto handle_unusual;
-        }
-        break;
-      }
-
-      default: {
-      handle_unusual:
-        if (tag == 0) {
-          goto success;
-        }
-        DO_(::google::protobuf::internal::WireFormat::SkipField(
-              input, tag, _internal_metadata_.mutable_unknown_fields()));
-        break;
-      }
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
     }
-  }
-success:
-  // @@protoc_insertion_point(parse_success:makeOrderResponse)
-  return true;
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
 failure:
-  // @@protoc_insertion_point(parse_failure:makeOrderResponse)
-  return false;
-#undef DO_
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
 }
 
-void makeOrderResponse::SerializeWithCachedSizes(
-    ::google::protobuf::io::CodedOutputStream* output) const {
-  // @@protoc_insertion_point(serialize_start:makeOrderResponse)
-  ::google::protobuf::uint32 cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  // int32 ret_code = 1;
-  if (this->ret_code() != 0) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(1, this->ret_code(), output);
-  }
-
-  // string res_info = 2;
-  if (this->res_info().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->res_info().data(), static_cast<int>(this->res_info().length()),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "makeOrderResponse.res_info");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      2, this->res_info(), output);
-  }
-
-  // string order_id = 3;
-  if (this->order_id().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->order_id().data(), static_cast<int>(this->order_id().length()),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
-      "makeOrderResponse.order_id");
-    ::google::protobuf::internal::WireFormatLite::WriteStringMaybeAliased(
-      3, this->order_id(), output);
-  }
-
-  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
-    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
-        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), output);
-  }
-  // @@protoc_insertion_point(serialize_end:makeOrderResponse)
-}
-
-::google::protobuf::uint8* makeOrderResponse::InternalSerializeWithCachedSizesToArray(
-    bool deterministic, ::google::protobuf::uint8* target) const {
-  (void)deterministic; // Unused
+uint8_t* makeOrderResponse::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
   // @@protoc_insertion_point(serialize_to_array_start:makeOrderResponse)
-  ::google::protobuf::uint32 cached_has_bits = 0;
+  uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
   // int32 ret_code = 1;
-  if (this->ret_code() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(1, this->ret_code(), target);
+  if (this->_internal_ret_code() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(1, this->_internal_ret_code(), target);
   }
 
   // string res_info = 2;
-  if (this->res_info().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->res_info().data(), static_cast<int>(this->res_info().length()),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+  if (!this->_internal_res_info().empty()) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_res_info().data(), static_cast<int>(this->_internal_res_info().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
       "makeOrderResponse.res_info");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        2, this->res_info(), target);
+    target = stream->WriteStringMaybeAliased(
+        2, this->_internal_res_info(), target);
   }
 
   // string order_id = 3;
-  if (this->order_id().size() > 0) {
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-      this->order_id().data(), static_cast<int>(this->order_id().length()),
-      ::google::protobuf::internal::WireFormatLite::SERIALIZE,
+  if (!this->_internal_order_id().empty()) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_order_id().data(), static_cast<int>(this->_internal_order_id().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
       "makeOrderResponse.order_id");
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        3, this->order_id(), target);
+    target = stream->WriteStringMaybeAliased(
+        3, this->_internal_order_id(), target);
   }
 
-  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
-    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
-        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()), target);
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
   // @@protoc_insertion_point(serialize_to_array_end:makeOrderResponse)
   return target;
@@ -692,79 +531,57 @@ size_t makeOrderResponse::ByteSizeLong() const {
 // @@protoc_insertion_point(message_byte_size_start:makeOrderResponse)
   size_t total_size = 0;
 
-  if ((_internal_metadata_.have_unknown_fields() &&  ::google::protobuf::internal::GetProto3PreserveUnknownsDefault())) {
-    total_size +=
-      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
-        (::google::protobuf::internal::GetProto3PreserveUnknownsDefault()   ? _internal_metadata_.unknown_fields()   : _internal_metadata_.default_instance()));
-  }
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
   // string res_info = 2;
-  if (this->res_info().size() > 0) {
+  if (!this->_internal_res_info().empty()) {
     total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->res_info());
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_res_info());
   }
 
   // string order_id = 3;
-  if (this->order_id().size() > 0) {
+  if (!this->_internal_order_id().empty()) {
     total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::StringSize(
-        this->order_id());
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_order_id());
   }
 
   // int32 ret_code = 1;
-  if (this->ret_code() != 0) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::Int32Size(
-        this->ret_code());
+  if (this->_internal_ret_code() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_ret_code());
   }
 
-  int cached_size = ::google::protobuf::internal::ToCachedSize(total_size);
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = cached_size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-  return total_size;
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
-void makeOrderResponse::MergeFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_merge_from_start:makeOrderResponse)
-  GOOGLE_DCHECK_NE(&from, this);
-  const makeOrderResponse* source =
-      ::google::protobuf::internal::DynamicCastToGenerated<const makeOrderResponse>(
-          &from);
-  if (source == NULL) {
-  // @@protoc_insertion_point(generalized_merge_from_cast_fail:makeOrderResponse)
-    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
-  } else {
-  // @@protoc_insertion_point(generalized_merge_from_cast_success:makeOrderResponse)
-    MergeFrom(*source);
-  }
-}
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData makeOrderResponse::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    makeOrderResponse::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*makeOrderResponse::GetClassData() const { return &_class_data_; }
 
-void makeOrderResponse::MergeFrom(const makeOrderResponse& from) {
-// @@protoc_insertion_point(class_specific_merge_from_start:makeOrderResponse)
-  GOOGLE_DCHECK_NE(&from, this);
-  _internal_metadata_.MergeFrom(from._internal_metadata_);
-  ::google::protobuf::uint32 cached_has_bits = 0;
+
+void makeOrderResponse::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<makeOrderResponse*>(&to_msg);
+  auto& from = static_cast<const makeOrderResponse&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:makeOrderResponse)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.res_info().size() > 0) {
-
-    res_info_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.res_info_);
+  if (!from._internal_res_info().empty()) {
+    _this->_internal_set_res_info(from._internal_res_info());
   }
-  if (from.order_id().size() > 0) {
-
-    order_id_.AssignWithDefault(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), from.order_id_);
+  if (!from._internal_order_id().empty()) {
+    _this->_internal_set_order_id(from._internal_order_id());
   }
-  if (from.ret_code() != 0) {
-    set_ret_code(from.ret_code());
+  if (from._internal_ret_code() != 0) {
+    _this->_internal_set_ret_code(from._internal_ret_code());
   }
-}
-
-void makeOrderResponse::CopyFrom(const ::google::protobuf::Message& from) {
-// @@protoc_insertion_point(generalized_copy_from_start:makeOrderResponse)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
 void makeOrderResponse::CopyFrom(const makeOrderResponse& from) {
@@ -778,39 +595,42 @@ bool makeOrderResponse::IsInitialized() const {
   return true;
 }
 
-void makeOrderResponse::Swap(makeOrderResponse* other) {
-  if (other == this) return;
-  InternalSwap(other);
-}
 void makeOrderResponse::InternalSwap(makeOrderResponse* other) {
   using std::swap;
-  res_info_.Swap(&other->res_info_);
-  order_id_.Swap(&other->order_id_);
-  swap(ret_code_, other->ret_code_);
-  _internal_metadata_.Swap(&other->_internal_metadata_);
-  swap(_cached_size_, other->_cached_size_);
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.res_info_, lhs_arena,
+      &other->_impl_.res_info_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.order_id_, lhs_arena,
+      &other->_impl_.order_id_, rhs_arena
+  );
+  swap(_impl_.ret_code_, other->_impl_.ret_code_);
 }
 
-::google::protobuf::Metadata makeOrderResponse::GetMetadata() const {
-  protobuf_order_2eproto::protobuf_AssignDescriptorsOnce();
-  return ::protobuf_order_2eproto::file_level_metadata[kIndexInFileMessages];
+::PROTOBUF_NAMESPACE_ID::Metadata makeOrderResponse::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_order_2eproto_getter, &descriptor_table_order_2eproto_once,
+      file_level_metadata_order_2eproto[1]);
 }
-
 
 // ===================================================================
 
 Order::~Order() {}
 
-const ::google::protobuf::ServiceDescriptor* Order::descriptor() {
-  protobuf_order_2eproto::protobuf_AssignDescriptorsOnce();
-  return protobuf_order_2eproto::file_level_service_descriptors[0];
+const ::PROTOBUF_NAMESPACE_ID::ServiceDescriptor* Order::descriptor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_order_2eproto);
+  return file_level_service_descriptors_order_2eproto[0];
 }
 
-const ::google::protobuf::ServiceDescriptor* Order::GetDescriptor() {
+const ::PROTOBUF_NAMESPACE_ID::ServiceDescriptor* Order::GetDescriptor() {
   return descriptor();
 }
 
-void Order::makeOrder(::google::protobuf::RpcController* controller,
+void Order::makeOrder(::PROTOBUF_NAMESPACE_ID::RpcController* controller,
                          const ::makeOrderRequest*,
                          ::makeOrderResponse*,
                          ::google::protobuf::Closure* done) {
@@ -818,7 +638,7 @@ void Order::makeOrder(::google::protobuf::RpcController* controller,
   done->Run();
 }
 
-void Order::queryOrder(::google::protobuf::RpcController* controller,
+void Order::queryOrder(::PROTOBUF_NAMESPACE_ID::RpcController* controller,
                          const ::makeOrderRequest*,
                          ::makeOrderResponse*,
                          ::google::protobuf::Closure* done) {
@@ -826,23 +646,27 @@ void Order::queryOrder(::google::protobuf::RpcController* controller,
   done->Run();
 }
 
-void Order::CallMethod(const ::google::protobuf::MethodDescriptor* method,
-                             ::google::protobuf::RpcController* controller,
-                             const ::google::protobuf::Message* request,
-                             ::google::protobuf::Message* response,
+void Order::CallMethod(const ::PROTOBUF_NAMESPACE_ID::MethodDescriptor* method,
+                             ::PROTOBUF_NAMESPACE_ID::RpcController* controller,
+                             const ::PROTOBUF_NAMESPACE_ID::Message* request,
+                             ::PROTOBUF_NAMESPACE_ID::Message* response,
                              ::google::protobuf::Closure* done) {
-  GOOGLE_DCHECK_EQ(method->service(), protobuf_order_2eproto::file_level_service_descriptors[0]);
+  GOOGLE_DCHECK_EQ(method->service(), file_level_service_descriptors_order_2eproto[0]);
   switch(method->index()) {
     case 0:
       makeOrder(controller,
-             ::google::protobuf::down_cast<const ::makeOrderRequest*>(request),
-             ::google::protobuf::down_cast< ::makeOrderResponse*>(response),
+             ::PROTOBUF_NAMESPACE_ID::internal::DownCast<const ::makeOrderRequest*>(
+                 request),
+             ::PROTOBUF_NAMESPACE_ID::internal::DownCast<::makeOrderResponse*>(
+                 response),
              done);
       break;
     case 1:
       queryOrder(controller,
-             ::google::protobuf::down_cast<const ::makeOrderRequest*>(request),
-             ::google::protobuf::down_cast< ::makeOrderResponse*>(response),
+             ::PROTOBUF_NAMESPACE_ID::internal::DownCast<const ::makeOrderRequest*>(
+                 request),
+             ::PROTOBUF_NAMESPACE_ID::internal::DownCast<::makeOrderResponse*>(
+                 response),
              done);
       break;
     default:
@@ -851,8 +675,8 @@ void Order::CallMethod(const ::google::protobuf::MethodDescriptor* method,
   }
 }
 
-const ::google::protobuf::Message& Order::GetRequestPrototype(
-    const ::google::protobuf::MethodDescriptor* method) const {
+const ::PROTOBUF_NAMESPACE_ID::Message& Order::GetRequestPrototype(
+    const ::PROTOBUF_NAMESPACE_ID::MethodDescriptor* method) const {
   GOOGLE_DCHECK_EQ(method->service(), descriptor());
   switch(method->index()) {
     case 0:
@@ -861,13 +685,13 @@ const ::google::protobuf::Message& Order::GetRequestPrototype(
       return ::makeOrderRequest::default_instance();
     default:
       GOOGLE_LOG(FATAL) << "Bad method index; this should never happen.";
-      return *::google::protobuf::MessageFactory::generated_factory()
+      return *::PROTOBUF_NAMESPACE_ID::MessageFactory::generated_factory()
           ->GetPrototype(method->input_type());
   }
 }
 
-const ::google::protobuf::Message& Order::GetResponsePrototype(
-    const ::google::protobuf::MethodDescriptor* method) const {
+const ::PROTOBUF_NAMESPACE_ID::Message& Order::GetResponsePrototype(
+    const ::PROTOBUF_NAMESPACE_ID::MethodDescriptor* method) const {
   GOOGLE_DCHECK_EQ(method->service(), descriptor());
   switch(method->index()) {
     case 0:
@@ -876,30 +700,30 @@ const ::google::protobuf::Message& Order::GetResponsePrototype(
       return ::makeOrderResponse::default_instance();
     default:
       GOOGLE_LOG(FATAL) << "Bad method index; this should never happen.";
-      return *::google::protobuf::MessageFactory::generated_factory()
+      return *::PROTOBUF_NAMESPACE_ID::MessageFactory::generated_factory()
           ->GetPrototype(method->output_type());
   }
 }
 
-Order_Stub::Order_Stub(::google::protobuf::RpcChannel* channel)
+Order_Stub::Order_Stub(::PROTOBUF_NAMESPACE_ID::RpcChannel* channel)
   : channel_(channel), owns_channel_(false) {}
 Order_Stub::Order_Stub(
-    ::google::protobuf::RpcChannel* channel,
-    ::google::protobuf::Service::ChannelOwnership ownership)
+    ::PROTOBUF_NAMESPACE_ID::RpcChannel* channel,
+    ::PROTOBUF_NAMESPACE_ID::Service::ChannelOwnership ownership)
   : channel_(channel),
-    owns_channel_(ownership == ::google::protobuf::Service::STUB_OWNS_CHANNEL) {}
+    owns_channel_(ownership == ::PROTOBUF_NAMESPACE_ID::Service::STUB_OWNS_CHANNEL) {}
 Order_Stub::~Order_Stub() {
   if (owns_channel_) delete channel_;
 }
 
-void Order_Stub::makeOrder(::google::protobuf::RpcController* controller,
+void Order_Stub::makeOrder(::PROTOBUF_NAMESPACE_ID::RpcController* controller,
                               const ::makeOrderRequest* request,
                               ::makeOrderResponse* response,
                               ::google::protobuf::Closure* done) {
   channel_->CallMethod(descriptor()->method(0),
                        controller, request, response, done);
 }
-void Order_Stub::queryOrder(::google::protobuf::RpcController* controller,
+void Order_Stub::queryOrder(::PROTOBUF_NAMESPACE_ID::RpcController* controller,
                               const ::makeOrderRequest* request,
                               ::makeOrderResponse* response,
                               ::google::protobuf::Closure* done) {
@@ -908,5 +732,16 @@ void Order_Stub::queryOrder(::google::protobuf::RpcController* controller,
 }
 
 // @@protoc_insertion_point(namespace_scope)
+PROTOBUF_NAMESPACE_OPEN
+template<> PROTOBUF_NOINLINE ::makeOrderRequest*
+Arena::CreateMaybeMessage< ::makeOrderRequest >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::makeOrderRequest >(arena);
+}
+template<> PROTOBUF_NOINLINE ::makeOrderResponse*
+Arena::CreateMaybeMessage< ::makeOrderResponse >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::makeOrderResponse >(arena);
+}
+PROTOBUF_NAMESPACE_CLOSE
 
 // @@protoc_insertion_point(global_scope)
+#include <google/protobuf/port_undef.inc>

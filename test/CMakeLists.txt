@@ -12,6 +12,10 @@ add_executable(rpc_service_discovery
     ../net/service_discovery/run_server_discovery.cc
 )
 
+target_include_directories(rpc_service_discovery PRIVATE
+    ${PROJECT_SOURCE_DIR}/common
+)
+
 add_executable(test_interface
     ../net/service_discovery/test_run_time_sd_interface.cc
 )

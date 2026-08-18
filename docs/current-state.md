@@ -6,14 +6,14 @@ Stage 0 repository audit, performed 2026-08-18 on Ubuntu 24.04.4 LTS (WSL), star
 
 KaiRPC is an asynchronous C++17 RPC framework for Linux. It uses an epoll-based event loop, per-connection TCP buffers, a custom TinyPB wire format, Google Protobuf generic services, and a small TCP service-discovery center with registration, heartbeat, and TTL filtering. The checked-out repository does **not** contain a Raft implementation, consensus module, replicated log, or distributed database. Raft work is therefore out of scope for this repository and this stage.
 
-The public README describes a working RPC quick start, but the current tree does not build that path on the audited environment. Claims below are verified against source and the commands recorded in this document, not inferred from the README.
+The public README describes a working RPC quick start. Stage 1 verification now confirms that path builds and completes a bounded local loopback on the audited environment. Claims below are verified against source and the commands recorded in this document, not inferred from the README.
 
 ## Dependencies
 
 - The source uses classic TinyXML 2.x: `#include <tinyxml.h>`, `TiXmlDocument`, `TiXmlElement`, and the `tinyxml` library. TinyXML2 is not compatible with these APIs.
 - Protobuf is consumed through generated service/message headers and the generic service API. The repository expects a Protobuf compiler and development library; the audited host has `protoc`/`libprotobuf` 3.21.12 installed.
 - `pthread` and the standard Linux socket/event libraries come from the normal compiler and libc development environment.
-- On Ubuntu/Debian the missing TinyXML development package is `libtinyxml-dev`. Installation requires `sudo apt-get update && sudo apt-get install -y libtinyxml-dev`; this host has no non-interactive sudo credentials, so it was not installed during Stage 1.
+- On Ubuntu/Debian the classic TinyXML development package is `libtinyxml-dev`; this host has the required `tinyxml.h` header and `libtinyxml.so.2.6.2` runtime installed.
 
 ## Implemented
 
@@ -26,11 +26,11 @@ The public README describes a working RPC quick start, but the current tree does
 - The dispatcher registers local services, parses `Service.Method`, deserializes requests, invokes `Service::CallMethod`, serializes responses, and maps several errors into TinyPB response fields.
 - A standalone service-discovery executable listens on query port 8080 and control port 9090 by default. Control commands include `add`, `modify`, `delete`, `heartbeat`, and `lookup`.
 - Service discovery stores one address and `last_seen_ms` per method and lazily removes expired entries on lookup. The RPC dispatcher starts a detached heartbeat thread at approximately half the configured TTL.
-- Protobuf-generated example files and three example executables (`rpc_server`, `rpc_client`, `tinypb_codec_test`) are described in `test/`; `test_interface` exercises the runtime discovery command helper.
+- Protobuf-generated example files and three example executables (`rpc_server`, `rpc_client`, `tinypb_codec_test`) are described in `test/`; `scripts/generate_test_proto.sh` regenerates them with `protoc` and normalizes trailing whitespace; `test_interface` exercises the runtime discovery command helper.
 
 ## Partially implemented
 
-- **Build and dependency integration:** CMake now checks Protobuf, Threads, `tinyxml.h`, and `libtinyxml` during configuration. The complete build remains blocked until the system TinyXML development package is installed; warning/sanitizer/test options are still absent.
+- **Build and dependency integration:** CMake checks Protobuf, Threads, `tinyxml.h`, and `libtinyxml` during configuration. Fresh Debug, ASan, UBSan, and TSan configurations build the complete repository; there is still no registered CTest suite or dedicated sanitizer option in the project.
 - **Reactor model:** The code uses level-triggered epoll by default; no `EPOLLET` is enabled. TCP reads attempt to drain until `EAGAIN`, but accepts, errors, half-close events, and shutdown are not handled consistently.
 - **TCP lifetime:** `TcpConnection::clear()` removes the event registration and changes state but does not close the socket. `IOThreadGroup::~IOThreadGroup()` is empty, and event callbacks capture raw `this` pointers. Shutdown and restart ownership is not defined.
 - **Writes:** The transport has an output buffer and attempts partial-write handling, but the write index is never advanced after `write(2)`, so pending bytes can be sent repeatedly. Completion callbacks are fired even when the connection did not prove that all bytes were delivered.
@@ -122,7 +122,7 @@ client call
 ## Testing gaps
 
 - `test/test_tinypb_coder.cc` is a standalone `assert` program, not a registered test. It covers one round-trip, partial input, sticky packets, and an oversized length header, but not checksum, all malformed field combinations, negative sizes, allocation/capacity edges, or concurrent use.
-- `test/test_rpc_server.cc` and `test/test_rpc_client.cc` are manual examples. They require the missing TinyXML header/library build path, live service discovery, three processes, and fixed local ports. The server example uses a fork/exec restart helper; it is not an automated integration test.
+- `test/test_rpc_server.cc` and `test/test_rpc_client.cc` are manual examples. They require live service discovery, three processes, and fixed local ports. The server example uses a fork/exec restart helper; it is not an automated integration test.
 - `test/test_rpc_client.cc` exercises neither unknown service behavior nor connection failure, timeout, peer close, duplicate message IDs, cancellation, or callback exactly-once semantics.
 - There are no tests for EventLoop cross-thread task ordering, fd reuse, HUP/RDHUP/ERR, partial writes, shutdown, IO-thread teardown, timer cancellation, logger shutdown, or service-center TTL expiration.
 - There are no race, load, fuzz, protocol differential, or long-running heartbeat tests.
@@ -136,31 +136,36 @@ OS: Ubuntu 24.04.4 LTS (WSL)
 Compiler: g++ 13.3.0
 CMake: 3.28.3
 Protobuf compiler/library: protoc 3.21.12 / libprotobuf.so.32
-TinyXML runtime: libtinyxml.so.2.6.2 present; tinyxml.h development header absent
+TinyXML runtime: libtinyxml.so.2.6.2 present; tinyxml.h development header present
 ```
 
 Commands and results:
 
 ```text
-cmake -S . -B build-stage1 -DCMAKE_BUILD_TYPE=Debug       FAIL (expected dependency check)
-cmake --build build-stage1 -j$(nproc)                    NOT RUN (configure stopped)
-./scripts/build.sh build-stage1-script                   FAIL (same configure check)
+cmake -S . -B build-stage1-final4 -DCMAKE_BUILD_TYPE=Debug       PASS
+cmake --build build-stage1-final4 -j$(nproc)                    PASS
+./scripts/build.sh build-stage1-final4-script                     PASS
+./build-stage1-final4/bin/tinypb_codec_test                       PASS
+service-discovery registration/query smoke                         PASS
+RPC server/client loopback smoke                                    PASS
 ```
 
-After the Stage 1 CMake change, configuration fails early with an actionable message identifying classic TinyXML and the `libtinyxml-dev` package, instead of reaching a compiler `tinyxml.h` failure. The package could not be installed because `sudo` requires an interactive password in this WSL session. The independent discovery targets were buildable before this change, but the full library and RPC examples remain unverified on this host.
+The `rpc_service_discovery` target receives `${PROJECT_SOURCE_DIR}/common` privately from `test/CMakeLists.txt`, which resolves its direct `config_reader.h` include without broadening global include paths. The canonical Protobuf command is `./scripts/generate_test_proto.sh`; it uses `protoc 3.21.12`, strips trailing whitespace from generated outputs, and reproduces the committed files exactly.
 
-The project does not enable `-Wall`, `-Wextra`, or `-Wpedantic`; the full target has no warning baseline because configuration stops at the missing dependency.
+The project does not enable `-Wall`, `-Wextra`, or `-Wpedantic`. The Debug build retains existing `-Wformat-security` warnings for dynamic strings passed to `printf`/`snprintf` in `common/log.cc` and `common/log.h`, plus the existing `sprintf` format-overflow warning in `common/high_availability.h:80`.
 
 ## Sanitizer baseline
 
 ```text
-ASan + UBSan full-project configure/build: NOT RUN (TinyXML dependency blocker)
-ASan + UBSan service-discovery target/smoke: PASS in Stage 0, no diagnostic
-TSan full-project configure/build: NOT RUN (TinyXML dependency blocker)
-TSan service-discovery runtime: FAIL, exit 66: "FATAL: ThreadSanitizer: unexpected memory mapping ..."
+ASan full-project configure/build: PASS (build-stage1-final-asan3)
+ASan TinyPB/RPC/service-discovery runtime: PASS, no diagnostic
+UBSan full-project configure/build: PASS (build-stage1-final-ubsan3)
+UBSan TinyPB/RPC/service-discovery runtime: PASS, no diagnostic
+TSan full-project configure/build: PASS (build-stage1-final-tsan3)
+TSan service-discovery runtime: WSL RUNTIME BLOCKED, exit 66: "FATAL: ThreadSanitizer: unexpected memory mapping ..."
 ```
 
-Only the independently buildable service-discovery executable was sanitized. The main `kairpc` library and RPC examples require `libtinyxml-dev` before a full sanitizer baseline can run. The TSan failure is environmental in this WSL run and is not evidence that the application is race-free.
+The TSan failure is environmental in this WSL run and is not evidence that the application is race-free.
 
 ## Technical debt
 
@@ -169,7 +174,7 @@ Only the independently buildable service-discovery executable was sanitized. The
 - The transport has no explicit connection state machine for connecting, connected, draining, closed, or failed; `TcpConnection::setState()` ignores its argument and always sets `Connected` (`net/tcp/tcp_connection.cc:214-216`).
 - Error codes and callback outcomes are not a single documented contract. Several paths log, exit, return, or invoke the callback inconsistently.
 - Service discovery is a plaintext control plane bound to all interfaces, with no framing, limits, authentication, persistence, or multi-node semantics.
-- Generated Protobuf sources are committed, but regeneration/version compatibility is not part of the build.
+- Generated Protobuf sources are committed; `scripts/generate_test_proto.sh` documents the `protoc 3.21.12` generator and trailing-whitespace normalization policy.
 
 ## Recommended repository-specific upgrade stages
 

@@ -42,6 +42,16 @@ The repository script accepts an optional build directory and runs the same conf
 
 Executables are written to `build-stage1/bin/`; the static library is written to `build-stage1/lib/`.
 
+## Generated Protobuf files
+
+The committed example messages and service are generated from `test/order.proto` with the installed `protoc` compiler:
+
+```bash
+./scripts/generate_test_proto.sh
+```
+
+The script reports the compiler version, generates into a temporary directory, removes trailing whitespace from the generated `.pb.cc` and `.pb.h` files, and then updates the committed outputs. Pass a temporary output directory as its first argument to verify generation without changing the source tree.
+
 ## Release build
 
 ```bash
@@ -83,4 +93,4 @@ cmake -S . -B build-ubsan -DCMAKE_BUILD_TYPE=Debug \
 cmake --build build-ubsan -j"$(nproc)"
 ```
 
-The Stage 0 WSL2 environment could compile a TSan target but failed to start it with `FATAL: ThreadSanitizer: unexpected memory mapping`. Treat TSan as environment-blocked on this host until it is run in a supported CI or Linux environment.
+On the validated WSL2 host, fresh ASan and UBSan full builds and their TinyPB, RPC loopback, and service-discovery smoke paths completed without sanitizer diagnostics. The complete TSan build also succeeds, but its runtime is blocked by WSL with `FATAL: ThreadSanitizer: unexpected memory mapping`; run TSan in supported CI or a native Linux environment.
