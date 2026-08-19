@@ -38,33 +38,50 @@ remaining entries stay open for their planned stages.
 
 ### BUG-FD-001: close ownership is incomplete
 
-- **Current observation:** `TcpConnection::clear()` removes event
-  registration/state but does not close the socket; client and server paths
-  retain separate fd ownership assumptions.
-- **Risk:** Descriptor leaks and stale events can target a reused fd.
-- **Future test idea:** Repeatedly connect, close, and inspect `/proc/self/fd`
-  while forcing descriptor reuse.
-- **Planned stage/category:** Stage 5, lifecycle and shutdown ownership.
+- **Status:** FIXED in Stage 4 (`fix(net): harden fd lifecycle and epoll error
+  handling`).
+- **Root cause:** `TcpConnection::clear()` removed epoll interest and marked
+  the connection closed, but never released the socket; `TcpClient` also kept
+  a second close path.
+- **Regression tests:** `unit.fd_lifecycle.close`,
+  `unit.fd_lifecycle.idempotent`, and `unit.fd_lifecycle.repeat` verify
+  `EBADF`, peer EOF, repeated cleanup safety, and a stable `/proc/self/fd`
+  count across 100 bounded lifecycles.
+- **Production fix:** `TcpConnection::clear()` is the single final release
+  path: it marks the connection closed, invalidates `m_fd`, unregisters and
+  resets the cached event, and closes the owned descriptor exactly once.
+  `TcpClient` delegates teardown to its connection.
+- **Invariant:** A connection-owned descriptor is invalid after final
+  teardown, and subsequent cleanup cannot close a reused descriptor number.
 
 ### BUG-EPOLL-001: HUP/RDHUP handling is incomplete
 
-- **Current observation:** Event dispatch checks `EPOLLERR` but does not
-  consistently handle `EPOLLHUP` or `EPOLLRDHUP`.
-- **Risk:** Peer half-close or hangup can leave connections and pending RPCs
-  alive indefinitely.
-- **Future test idea:** Close a socket in each half-close direction and assert a
-  bounded transition to the closed state.
-- **Planned stage/category:** Stage 4, event/error handling.
+- **Status:** FIXED in Stage 4 (`fix(net): harden fd lifecycle and epoll error
+  handling`).
+- **Root cause:** `Fd_Event` did not register `EPOLLRDHUP`, and `Eventloop`
+  ignored HUP/RDHUP, allowing terminal descriptors to remain active.
+- **Regression tests:** `unit.epoll.hup`, `unit.epoll.rdhup`, and
+  `unit.epoll.rdhup_with_data` cover full close, half-close, terminal
+  deregistration, and readable data arriving with RDHUP.
+- **Production fix:** Read interest includes `EPOLLRDHUP`; HUP/RDHUP are
+  terminal events that unregister the descriptor and invoke the error callback
+  after any readable callback from the same epoll result.
+- **Invariant:** Terminal events do not busy-loop, do not dispatch writes, and
+  do not discard data reported with `EPOLLIN`.
 
 ### BUG-EPOLL-002: error events can invoke the wrong callback
 
-- **Current observation:** The event loop queues the writable callback for an
-  `EPOLLERR` path instead of the registered error callback.
-- **Risk:** Errors are treated as successful writes and cleanup/error reporting
-  is skipped.
-- **Future test idea:** Inject a socket error and assert that only the error
-  callback runs.
-- **Planned stage/category:** Stage 4, event/error handling.
+- **Status:** FIXED in Stage 4 (`fix(net): harden fd lifecycle and epoll error
+  handling`).
+- **Root cause:** The `EPOLLERR` branch tested the error handler but queued the
+  writable handler.
+- **Regression test:** `unit.epoll.error_dispatch` uses a real pipe error and
+  distinct read/write/error counters.
+- **Production fix:** Terminal dispatch snapshots and queues the registered
+  `ERROR_EVENT` callback, while suppressing `EPOLLOUT` for the same terminal
+  result.
+- **Invariant:** `EPOLLERR` reaches only error handling; it is never treated as
+  successful writable progress.
 
 ### BUG-LIFETIME-001: raw callbacks can outlive owners
 

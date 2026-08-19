@@ -63,6 +63,7 @@ namespace talon {
 
     TcpConnection::~TcpConnection() {
         DEBUGLOG("~TcpConnection");
+        clear();
         if (m_coder) {
             delete m_coder;
             m_coder = nullptr;
@@ -72,7 +73,7 @@ namespace talon {
     void TcpConnection::onRead() {
         // 1. 从 socket 缓冲区，调用 系统的 read 函数读取字节 in_buffer 里面
 
-        if (m_state != Connected) {
+        if (m_state != Connected || m_fd < 0) {
             ERRORLOG("onRead error, client has already disconneced, addr[%s], clientfd[%d]", m_peer_addr->toString().c_str(), m_fd);
             return;
         }
@@ -99,8 +100,15 @@ namespace talon {
             } else if (rt == 0) {
                 is_close = true;
                 break;
-            } else if (rt == -1 && errno == EAGAIN) {
+            } else if (rt == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
                 is_read_all = true;
+                break;
+            } else if (rt == -1 && errno == EINTR) {
+                continue;
+            } else {
+                ERRORLOG("read data error, errno=%d, error=%s", errno,
+                         strerror(errno));
+                is_close = true;
                 break;
             }
         }
@@ -159,7 +167,7 @@ namespace talon {
     void TcpConnection::onWrite() {
         // 将当前 out_buffer 里面的数据全部发送给 client
 
-        if (m_state != Connected) {
+        if (m_state != Connected || m_fd < 0) {
             ERRORLOG("onWrite error, client has already disconneced, addr[%s], clientfd[%d]", m_peer_addr->toString().c_str(), m_fd);
             return;
         }
@@ -198,8 +206,11 @@ namespace talon {
                 // 发送缓冲区已满，不能再发送了。
                 // 这种情况我们等下次 fd 可写的时候再次发送数据即可
                 ERRORLOG("write data error, errno==EAGIN and rt == -1");
+            } else if (rt == -1 && errno == EINTR) {
+                continue;
             } else if (rt < 0) {
                 ERRORLOG("write data error, errno=%d, error=%s", errno, strerror(errno));
+                clear();
             }
             break;
         }
@@ -225,17 +236,26 @@ namespace talon {
     }
 
     void TcpConnection::clear() {
-        // 处理一些关闭连接后的清理动作
-        if (m_state == Closed) {
+        if (m_state == Closed && m_fd < 0) {
             return;
         }
-        m_fd_event->cancle(Fd_Event::IN_EVENT);
-        m_fd_event->cancle(Fd_Event::OUT_EVENT);
 
-        m_event_loop->deleteEpollEvent(m_fd_event);
-
+        const int fd = m_fd;
+        m_fd = -1;
         m_state = Closed;
 
+        if (m_fd_event != nullptr) {
+            m_fd_event->cancle(Fd_Event::IN_EVENT);
+            m_fd_event->cancle(Fd_Event::OUT_EVENT);
+            if (m_event_loop != nullptr) {
+                m_event_loop->deleteEpollEvent(m_fd_event);
+            }
+            m_fd_event->reset();
+        }
+
+        if (fd >= 0) {
+            close(fd);
+        }
     }
 
     void TcpConnection::shutdown() {
@@ -249,7 +269,9 @@ namespace talon {
         // 调用 shutdown 关闭读写，意味着服务器不会再对这个 fd 进行读写操作了
         // 发送 FIN 报文， 触发了四次挥手的第一个阶段
         // 当 fd 发生可读事件，但是可读的数据为0，即 对端发送了 FIN
-        ::shutdown(m_fd, SHUT_RDWR);
+        if (m_fd >= 0) {
+            ::shutdown(m_fd, SHUT_RDWR);
+        }
 
     }
 
@@ -260,15 +282,23 @@ namespace talon {
 
     //isInLoopThread()
     void TcpConnection::listenWrite() {
+        if (m_state == Closed || m_fd < 0) {
+            return;
+        }
 
-        m_fd_event->listen(Fd_Event::OUT_EVENT, [this] { onWrite(); });
+        m_fd_event->listen(Fd_Event::OUT_EVENT, [this] { onWrite(); },
+                           [this] { clear(); });
         m_event_loop->addEpollEvent(m_fd_event);
     }
 
     // ！isInLoopThread()
     void TcpConnection::listenRead() {
+        if (m_state == Closed || m_fd < 0) {
+            return;
+        }
 
-        m_fd_event->listen(Fd_Event::IN_EVENT, [this] { onRead(); });
+        m_fd_event->listen(Fd_Event::IN_EVENT, [this] { onRead(); },
+                           [this] { clear(); });
         m_event_loop->addEpollEvent(m_fd_event);
     }
 

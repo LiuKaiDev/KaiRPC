@@ -34,6 +34,8 @@ namespace talon {
         // 取消监听
         void cancle(TriggerEvent event_type);
 
+        void reset();
+
         int getFd() const {
             return m_fd;
         }
@@ -41,7 +43,6 @@ namespace talon {
         epoll_event getEpollEvent() {
             return m_listen_event;
         }
-
 
     protected:
         int m_fd{-1};

@@ -155,24 +155,29 @@ namespace talon {
                     // int event = (int)(trigger_event.events);
                     // DEBUGLOG("unkonow event = %d", event);
 
-                    if (trigger_event.events & EPOLLIN) {
+                    const uint32_t events = trigger_event.events;
+                    const bool is_terminal =
+                            events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP);
+
+                    if (events & EPOLLIN) {
 
                         DEBUGLOG("fd %d trigger EPOLLIN event", fd_event->getFd())
                         addTask(fd_event->handler(Fd_Event::IN_EVENT));
                     }
-                    if (trigger_event.events & EPOLLOUT) {
+                    if ((events & EPOLLOUT) && !is_terminal) {
                         DEBUGLOG("fd %d trigger EPOLLOUT event", fd_event->getFd())
                         addTask(fd_event->handler(Fd_Event::OUT_EVENT));
                     }
 
-                    // EPOLLHUP EPOLLERR
-                    if (trigger_event.events & EPOLLERR) {
-                        DEBUGLOG("fd %d trigger EPOLLERROR event", fd_event->getFd())
-                        // 删除出错的套接字
+                    if (is_terminal) {
+                        DEBUGLOG("fd %d trigger terminal epoll event, events=%u",
+                                 fd_event->getFd(), events)
+                        auto error_callback =
+                                fd_event->handler(Fd_Event::ERROR_EVENT);
                         deleteEpollEvent(fd_event);
-                        if (fd_event->handler(Fd_Event::ERROR_EVENT) != nullptr) {
+                        if (error_callback != nullptr) {
                             DEBUGLOG("fd %d add error callback", fd_event->getFd())
-                            addTask(fd_event->handler(Fd_Event::OUT_EVENT));
+                            addTask(error_callback);
                         }
                     }
                 }

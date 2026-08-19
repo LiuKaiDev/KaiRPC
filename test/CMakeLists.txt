@@ -33,6 +33,10 @@ if(BUILD_TESTING)
         test_tcp_write_path.cc
     )
 
+    add_executable(fd_epoll_test
+        test_fd_epoll.cc
+    )
+
     add_executable(service_discovery_integration_test
         test_service_discovery_integration.cc
     )
@@ -50,12 +54,20 @@ target_link_libraries(tinypb_codec_test PRIVATE kairpc)
 if(BUILD_TESTING)
     target_link_libraries(tcp_buffer_test PRIVATE kairpc)
     target_link_libraries(tcp_write_path_test PRIVATE kairpc)
+    target_link_libraries(fd_epoll_test PRIVATE kairpc)
 
     add_test(NAME unit.tcp_buffer COMMAND tcp_buffer_test)
     add_test(NAME unit.tinypb_codec COMMAND tinypb_codec_test)
     add_test(NAME unit.tcp_write.complete COMMAND tcp_write_path_test complete)
     add_test(NAME unit.tcp_write.partial COMMAND tcp_write_path_test partial)
     add_test(NAME unit.tcp_write.eagain COMMAND tcp_write_path_test eagain)
+    add_test(NAME unit.fd_lifecycle.close COMMAND fd_epoll_test close)
+    add_test(NAME unit.fd_lifecycle.idempotent COMMAND fd_epoll_test idempotent)
+    add_test(NAME unit.fd_lifecycle.repeat COMMAND fd_epoll_test repeat)
+    add_test(NAME unit.epoll.error_dispatch COMMAND fd_epoll_test error_dispatch)
+    add_test(NAME unit.epoll.hup COMMAND fd_epoll_test hup)
+    add_test(NAME unit.epoll.rdhup COMMAND fd_epoll_test rdhup)
+    add_test(NAME unit.epoll.rdhup_with_data COMMAND fd_epoll_test rdhup_with_data)
     add_test(
         NAME integration.service_discovery
         COMMAND service_discovery_integration_test
@@ -87,6 +99,19 @@ if(BUILD_TESTING)
         unit.tcp_write.eagain
         PROPERTIES
             LABELS "unit;tcp-write"
+            TIMEOUT 15
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    )
+    set_tests_properties(
+        unit.fd_lifecycle.close
+        unit.fd_lifecycle.idempotent
+        unit.fd_lifecycle.repeat
+        unit.epoll.error_dispatch
+        unit.epoll.hup
+        unit.epoll.rdhup
+        unit.epoll.rdhup_with_data
+        PROPERTIES
+            LABELS "unit;network;fd-lifecycle;epoll;tcp"
             TIMEOUT 15
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     )

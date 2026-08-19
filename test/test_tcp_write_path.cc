@@ -53,6 +53,11 @@ public:
     bool valid() const { return m_fds[0] >= 0 && m_fds[1] >= 0; }
     int writer() const { return m_fds[0]; }
     int reader() const { return m_fds[1]; }
+    int releaseWriter() {
+        int fd = m_fds[0];
+        m_fds[0] = -1;
+        return fd;
+    }
 
 private:
     int m_fds[2]{-1, -1};
@@ -132,7 +137,7 @@ bool testCompleteWrite() {
 
     auto message = makeMessage(32);
     const std::vector<char> expected = encodeMessage(message);
-    auto connection = makeConnection(sockets.writer());
+    auto connection = makeConnection(sockets.releaseWriter());
     queueMessage(*connection, message);
 
     connection->onWrite();
@@ -164,7 +169,7 @@ bool testPartialWrite() {
 
     auto message = makeMessage(256 * 1024);
     const std::vector<char> expected = encodeMessage(message);
-    auto connection = makeConnection(sockets.writer());
+    auto connection = makeConnection(sockets.releaseWriter());
     queueMessage(*connection, message);
 
     connection->onWrite();
@@ -236,7 +241,7 @@ bool testEagain() {
 
     auto message = makeMessage(32);
     const std::vector<char> expected = encodeMessage(message);
-    auto connection = makeConnection(sockets.writer());
+    auto connection = makeConnection(sockets.releaseWriter());
     queueMessage(*connection, message);
     connection->onWrite();
 

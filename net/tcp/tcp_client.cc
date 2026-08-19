@@ -39,9 +39,11 @@ namespace talon{
 
     TcpClient::~TcpClient() {
         DEBUGLOG("TcpClient::~TcpClient()");
-        if (m_fd > 0) {
-            close(m_fd);
+        if (m_connection != nullptr) {
+            m_connection->clear();
         }
+        m_fd = -1;
+        m_fd_event = nullptr;
     }
 
 // 异步的进行 conenct
@@ -58,35 +60,37 @@ namespace talon{
         } else if (rt == -1) {
             if (errno == EINPROGRESS) {
                 // epoll 监听可写事件，然后判断错误码
-                m_fd_event->listen(Fd_Event::OUT_EVENT,
-                                   [this, done]() {
-                                       int rt = ::connect(m_fd, m_peer_addr->getSockAddr(), m_peer_addr->getSockLen());
-                                       if ((rt < 0 && errno == EISCONN) || (rt == 0)) {
-                                           DEBUGLOG("connect [%s] sussess", m_peer_addr->toString().c_str());
-                                           initLocalAddr();
-                                           m_connection->setState(Connected);
-                                       } else {
-                                           if (errno == ECONNREFUSED) {
-                                               m_connect_error_code = ERROR_PEER_CLOSED;
-                                               m_connect_error_info = "connect refused, sys error = " + std::string(strerror(errno));
-                                           } else {
-                                               m_connect_error_code = ERROR_FAILED_CONNECT;
-                                               m_connect_error_info = "connect unkonwn error, sys error = " + std::string(strerror(errno));
-                                           }
-                                           ERRORLOG("connect errror, errno=%d, error=%s", errno, strerror(errno));
-                                           close(m_fd);
-                                           m_fd = socket(m_peer_addr->getFamily(), SOCK_STREAM, 0);
-                                       }
+                auto connect_callback = [this, done]() {
+                    m_fd_event->cancle(Fd_Event::OUT_EVENT);
+                    m_event_loop->deleteEpollEvent(m_fd_event);
+                    int rt = ::connect(m_fd, m_peer_addr->getSockAddr(),
+                                       m_peer_addr->getSockLen());
+                    if ((rt < 0 && errno == EISCONN) || (rt == 0)) {
+                        DEBUGLOG("connect [%s] sussess", m_peer_addr->toString().c_str());
+                        initLocalAddr();
+                        m_connection->setState(Connected);
+                    } else {
+                        if (errno == ECONNREFUSED) {
+                            m_connect_error_code = ERROR_PEER_CLOSED;
+                            m_connect_error_info = "connect refused, sys error = " + std::string(strerror(errno));
+                        } else {
+                            m_connect_error_code = ERROR_FAILED_CONNECT;
+                            m_connect_error_info = "connect unkonwn error, sys error = " + std::string(strerror(errno));
+                        }
+                        ERRORLOG("connect errror, errno=%d, error=%s", errno, strerror(errno));
+                        m_connection->clear();
+                        m_fd = -1;
+                        m_fd_event = nullptr;
+                    }
 
-                                       // 连接完后需要去掉可写事件的监听，不然会一直触发
-                                       m_event_loop->deleteEpollEvent(m_fd_event);
-                                       DEBUGLOG("now begin to done");
-                                       // 如果连接完成，才会执行回调函数
-                                       if (done) {
-                                           done();
-                                       }
-                                   }
-                );
+                    DEBUGLOG("now begin to done");
+                    // 如果连接完成，才会执行回调函数
+                    if (done) {
+                        done();
+                    }
+                };
+                m_fd_event->listen(Fd_Event::OUT_EVENT, connect_callback,
+                                   connect_callback);
                 m_event_loop->addEpollEvent(m_fd_event);
                if (!m_event_loop->isLooping()) {
                     m_event_loop->loop();

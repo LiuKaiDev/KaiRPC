@@ -91,7 +91,7 @@ namespace talon {
 
         TcpState m_state;
 
-        int m_fd {0};
+        int m_fd {-1};
 
         TcpConnectionType m_connection_type {TcpConnectionByServer};
 
