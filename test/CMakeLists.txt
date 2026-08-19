@@ -48,6 +48,11 @@ if(BUILD_TESTING)
     add_executable(rpc_loopback_integration_test
         test_rpc_loopback_integration.cc
     )
+
+    add_executable(rpc_completion_test
+        test_rpc_completion.cc
+        order.pb.cc
+    )
 endif()
 
 target_link_libraries(rpc_server PRIVATE kairpc)
@@ -60,6 +65,7 @@ if(BUILD_TESTING)
     target_link_libraries(tcp_write_path_test PRIVATE kairpc)
     target_link_libraries(fd_epoll_test PRIVATE kairpc)
     target_link_libraries(lifetime_iothread_test PRIVATE kairpc)
+    target_link_libraries(rpc_completion_test PRIVATE kairpc)
 
     add_test(NAME unit.tcp_buffer COMMAND tcp_buffer_test)
     add_test(NAME unit.tinypb_codec COMMAND tinypb_codec_test)
@@ -81,6 +87,12 @@ if(BUILD_TESTING)
     add_test(NAME unit.lifetime.deferred_callback COMMAND lifetime_iothread_test deferred_callback)
     add_test(NAME unit.lifetime.timer_cancel COMMAND lifetime_iothread_test timer_cancel)
     add_test(NAME unit.shutdown.server COMMAND lifetime_iothread_test server_shutdown)
+    add_test(NAME unit.rpc.timeout COMMAND rpc_completion_test timeout)
+    add_test(NAME unit.rpc.cancel COMMAND rpc_completion_test cancel)
+    add_test(NAME unit.rpc.disconnect COMMAND rpc_completion_test disconnect)
+    add_test(NAME unit.rpc.connect_failure COMMAND rpc_completion_test connect_failure)
+    add_test(NAME unit.rpc.response COMMAND rpc_completion_test response)
+    add_test(NAME unit.rpc.timeout_wins COMMAND rpc_completion_test timeout_wins)
     add_test(
         NAME integration.service_discovery
         COMMAND service_discovery_integration_test
@@ -139,6 +151,18 @@ if(BUILD_TESTING)
         unit.shutdown.server
         PROPERTIES
             LABELS "unit;network;lifetime;iothread;shutdown"
+            TIMEOUT 15
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    )
+    set_tests_properties(
+        unit.rpc.timeout
+        unit.rpc.cancel
+        unit.rpc.disconnect
+        unit.rpc.connect_failure
+        unit.rpc.response
+        unit.rpc.timeout_wins
+        PROPERTIES
+            LABELS "unit;rpc;completion"
             TIMEOUT 15
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     )

@@ -35,7 +35,7 @@ The public README describes a working RPC quick start. Stage 1 verification now 
 - **Reactor model:** The code uses level-triggered epoll by default; no `EPOLLET` is enabled. TCP reads attempt to drain until `EAGAIN`, but accepts, errors, half-close events, and shutdown are not handled consistently.
 - **TCP lifetime:** `TcpConnection::clear()` removes the event registration and changes state but does not close the socket. `IOThreadGroup::~IOThreadGroup()` is empty, and event callbacks capture raw `this` pointers. Shutdown and restart ownership is not defined.
 - **Writes:** The transport has an output buffer and attempts partial-write handling, but the write index is never advanced after `write(2)`, so pending bytes can be sent repeatedly. Completion callbacks are fired even when the connection did not prove that all bytes were delivered.
-- **RPC timeout/cancellation:** A timer reports timeout and guards the user callback with `Finished()`, but the timer is not canceled on success, outstanding socket callbacks are not removed, and disconnects do not fail pending calls immediately.
+- **RPC timeout/cancellation:** Stage 6 now gives each call one terminal completion gate; timeout, cancellation, connect failure, response, and disconnect clean pending callbacks and invoke the user closure at most once.
 - **Service discovery:** TTL and heartbeat exist, but the protocol is an unframed, single-read/single-write TCP command exchange with no request timeout, authentication, persistence, multi-instance routing, or lifecycle stop for heartbeat threads.
 - **Logging/high availability:** Async logging, signal hooks, and a fork/exec restart helper exist, but the logger currently prints queued entries to stdout after opening a file, and the restart path is not a graceful or signal-safe shutdown design.
 
@@ -46,7 +46,7 @@ The public README describes a working RPC quick start. Stage 1 verification now 
 - The Stage 2 baseline verifies one bounded end-to-end RPC loopback and one service-discovery registration/query flow. Reconnect, failure-injection, service-discovery TTL, concurrent registry, and load/stability coverage remain absent.
 - Checksum integrity is not implemented. The encoder writes the constant value `1` and the decoder only stores it.
 - Protobuf body validity is delegated to the dispatcher; the wire decoder does not distinguish an invalid body until dispatch.
-- Cancellation notification (`RpcController::NotifyOnCancel`) is empty.
+- Cancellation notification (`RpcController::NotifyOnCancel`) is supported for the controller cancellation path.
 - IPv6, TLS, authentication/authorization, backpressure limits, graceful draining, and durable service registration are absent.
 
 ## Architecture and runtime flow
@@ -84,7 +84,7 @@ client call
 
 ### Message IDs and callback flow
 
-`MsgIDUtil` creates a 20-digit per-thread ID seeded from `/dev/urandom` and then increments it. A call can instead reuse the thread-local runtime message ID or an explicitly set controller ID. The client stores a response callback keyed by that string; an unknown response ID is silently ignored. `RpcChannel::callBack()` attempts an exactly-once guard with `RpcController::Finished()`, but missing-service and several disconnect paths return without invoking it.
+`MsgIDUtil` creates a 20-digit per-thread ID seeded from `/dev/urandom` and then increments it. A call can instead reuse the thread-local runtime message ID or an explicitly set controller ID. The client stores a response callback keyed by that string; an unknown response ID is silently ignored. Stage 6 centralizes response, timeout, cancellation, connect-error, and disconnect completion through one terminal request state; late events are ignored and the user callback runs at most once.
 
 ## Correctness risks
 
@@ -97,10 +97,10 @@ client call
 ### High
 
 1. **Socket ownership and close are incomplete.** `TcpConnection::clear()` unregisters the descriptor but never closes it (`net/tcp/tcp_connection.cc:222-234`); `TcpConnection`'s destructor also does not close it. The server therefore leaks accepted fds, and stale epoll events can target reused descriptors. `TcpClient` closes its fd independently in its destructor (`net/tcp/tcp_client.cc:40-45`), creating separate ownership paths.
-2. **Error and half-close events are mishandled.** `Eventloop::loop()` checks `EPOLLERR` only, ignores `EPOLLHUP`/`EPOLLRDHUP`, and queues the `OUT_EVENT` handler instead of the `ERROR_EVENT` handler (`net/eventloop.cc:158-176`). Peer shutdown can therefore leave pending RPCs unresolved.
-3. **Connect failure does not establish a valid replacement connection.** On asynchronous failure, `TcpClient` closes `m_fd` and creates a new socket without updating the `Fd_Event`, setting nonblocking mode, or registering the new descriptor (`net/tcp/tcp_client.cc:61-90`). The callback is still invoked, and no retry policy exists.
+2. **Service-discovery I/O remains process-terminating.** `serviceDiscovery()` still calls `exit(1)` on socket/connect/read errors. Stage 6 handles failures after a service endpoint is returned; service-discovery robustness remains open.
+3. **Connect failure is terminal.** Stage 6 completes the controller and user callback once when connection establishment fails. No retry or alternate-endpoint policy exists.
 4. **The RAII mutex wrapper unlocks twice.** `ScopeMutex::unlock()` does not clear `m_is_lock`, so the destructor calls `unlock()` again (`common/mutex.h:29-33`, `common/mutex.h:18-20`). The code manually calls `unlock()` throughout the reactor, timer, and logger. Return codes are ignored; depending on mutex state this creates undefined/error-prone unlock behavior and race windows.
-5. **RPC discovery failure can terminate the process or skip the callback.** `serviceDiscovery()` calls `exit(1)` on socket/connect/read errors (`net/service_discovery/service_discovery.h:15-43`), while `RpcChannel::CallMethod()` returns immediately for `"unknown host"` without setting a controller error or invoking `done` (`net/rpc/rpc_channel.cc:51-58`).
+5. **RPC deadlines do not cover service discovery.** Discovery runs synchronously before the per-request timer starts, so a stalled discovery exchange can exceed the controller timeout. This remains part of `BUG-SD-001`.
 6. **The service center leaves query sockets registered after use.** Query clients are not removed from epoll after a response, and the `recv <= 0` path closes without `EPOLL_CTL_DEL` (`net/service_discovery/run_server_discovery.cc:305-341`). Descriptor reuse can produce stale events.
 7. **Shutdown leaks threads and resources.** `IOThreadGroup::~IOThreadGroup()` is empty (`net/iothreadgroup.cc:15-17`); `TcpServer` deletes its main loop before the IO-thread group and does not provide a coordinated stop/drain sequence (`net/tcp/tcp_server.cc:27-40`). Timerfds, eventfds, and accepted sockets are not consistently closed.
 
@@ -124,10 +124,10 @@ client call
 
 - `test/test_tinypb_coder.cc` is registered as `unit.tinypb_codec`. It covers one round-trip, partial input, sticky packets, and an oversized length header, but not checksum, all malformed field combinations, negative sizes, allocation/capacity edges, or concurrent use.
 - `test/test_rpc_server.cc` and `test/test_rpc_client.cc` are manual examples. They require live service discovery, three processes, and fixed local ports. The server example uses a fork/exec restart helper; it is not an automated integration test.
-- `test/test_rpc_client.cc` exercises neither unknown service behavior nor connection failure, timeout, peer close, duplicate message IDs, cancellation, or callback exactly-once semantics.
+- `test/test_rpc_completion.cc` covers success, timeout, cancellation, connect refusal, peer disconnect, and response/timeout ordering with callback counts. Unknown-service and duplicate-message-ID coverage remain absent.
 - There are no tests for EventLoop cross-thread task ordering, fd reuse, HUP/RDHUP/ERR, partial writes, shutdown, IO-thread teardown, timer cancellation, logger shutdown, or service-center TTL expiration.
 - The known production risks intentionally left for later repair are tracked in [docs/known-regressions.md](known-regressions.md); the Stage 2 tests do not assert those broken behaviors as correct.
-- In Stage 2 sanitizer runs, ASan and UBSan produced no sanitizer diagnostics; ASan did expose an intermittent 15-second RPC loopback timeout in the existing server/client lifecycle, while the same Debug repeat gate remained green. That behavior is deferred with the RPC/lifetime risks rather than hidden by a retry.
+- In Stage 6 serial sanitizer runs, Debug/UBSan/ASan full CTest suites passed 28/28. The historical ASan loopback timeout was not reproduced in the final serial full run; a later combined repeat was limited by fixed service-center port reuse, not a sanitizer diagnostic.
 - There are no race, load, fuzz, protocol differential, or long-running heartbeat tests.
 
 ## Build baseline

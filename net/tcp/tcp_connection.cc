@@ -145,8 +145,9 @@ namespace talon {
                 std::string msg_id = i->m_msg_id;
                 auto it = m_read_dones.find(msg_id);
                 if (it != m_read_dones.end()) {
-                    it->second(i);
+                    auto done = std::move(it->second);
                     m_read_dones.erase(it);
+                    done(i);
                 }
             }
 
@@ -252,6 +253,14 @@ namespace talon {
         if (fd >= 0) {
             close(fd);
         }
+
+        m_read_dones.clear();
+        m_write_dones.clear();
+        auto disconnect_callback = std::move(m_disconnect_callback);
+        m_disconnect_callback = nullptr;
+        if (disconnect_callback) {
+            disconnect_callback();
+        }
     }
 
     void TcpConnection::shutdown() {
@@ -333,6 +342,14 @@ namespace talon {
 
     void TcpConnection::pushReadMessage(const std::string& msg_id, const std::function<void(AbstractProtocol::s_ptr)>& done) {
         m_read_dones.insert(std::make_pair(msg_id, done));
+    }
+
+    void TcpConnection::removeReadMessage(const std::string& msg_id) {
+        m_read_dones.erase(msg_id);
+    }
+
+    void TcpConnection::setDisconnectCallback(std::function<void()> callback) {
+        m_disconnect_callback = std::move(callback);
     }
 
 

@@ -125,23 +125,43 @@ remaining entries stay open for their planned stages.
 
 ### BUG-RPC-001: timeout and cancellation are incomplete
 
-- **Current observation:** Timeout marks the controller but does not cancel all
-  outstanding socket/timer callbacks; cancellation notification is empty.
-- **Risk:** Late responses can race timeout state or retain resources longer
-  than the call contract allows.
-- **Future test idea:** Delay a server response past the deadline and assert one
-  callback, one terminal controller state, and no late callback.
-- **Planned stage/category:** Stage 6, RPC semantics.
+- **Status:** FIXED in Stage 6 (`fix(rpc): enforce timeout and exactly-once completion`).
+- **Root cause:** Timeout set `Finished` before `RpcChannel::callBack()`, so the
+  user closure was skipped; timers and response callbacks were not invalidated,
+  and `NotifyOnCancel()` was empty.
+- **Pre-fix evidence:** `timeout 5s /tmp/kairpc-stage6-red/bin/rpc_completion_test timeout`
+  returned `124` after logging `call rpc timeout arrive`; no user completion ran.
+- **Regression tests:** `unit.rpc.timeout`, `unit.rpc.cancel`,
+  `unit.rpc.response`, and `unit.rpc.timeout_wins`; ASan completion tests passed
+  6/6 for 50 rounds.
+- **Production fix:** A per-call request state owns the timer, transport,
+  response, and closure. Timeout, cancellation, response, connect error, and
+  disconnect all compete through one atomic terminal gate, remove pending read
+  state, invalidate the timer, and invoke the closure once.
+- **Invariant:** A terminal request cannot be completed again; late responses and
+  timer events are no-ops, and terminal resources are released.
+- **Stage 6 commit:** `fix(rpc): enforce timeout and exactly-once completion`.
 
 ### BUG-RPC-002: disconnect callback exactly-once behavior is incomplete
 
-- **Current observation:** Several disconnect and discovery-failure paths return
-  without invoking the user closure, while other paths guard completion with a
-  finished flag.
-- **Risk:** Callers can hang forever or observe inconsistent completion counts.
-- **Future test idea:** Drop the peer at connect, write, and read phases and
-  count callback invocations under a short deadline.
-- **Planned stage/category:** Stage 6, RPC semantics and failure handling.
+- **Status:** FIXED in Stage 6 (`fix(rpc): enforce timeout and exactly-once completion`).
+- **Root cause:** Connect refusal and peer terminal events had no shared
+  completion path; pending callbacks could remain unresolved or race timeout.
+- **Pre-fix evidence:** The old timeout path reproduced missing completion and
+  hung until the outer watchdog. Connect-failure and disconnect cases are
+  retained as post-fix regression coverage.
+- **Regression tests:** `unit.rpc.connect_failure` and
+  `unit.rpc.disconnect`, plus response/timeout race coverage.
+- **Production fix:** TcpConnection exposes disconnect notification and pending
+  read removal; RpcChannel routes connect and transport errors through the same
+  request state gate as success and timeout.
+- **Invariant:** Every locally detected terminal failure completes the user
+  callback at most once and leaves no pending request entry.
+- **Stage 6 commit:** `fix(rpc): enforce timeout and exactly-once completion`.
+
+Exactly-once completion means at-most-once user callback execution for one
+logical RPC attempt. It does not guarantee exactly-once remote business
+execution.
 
 ## TinyPB and service discovery
 

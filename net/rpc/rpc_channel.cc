@@ -4,263 +4,339 @@
 
 #include "rpc_channel.h"
 
+#include <atomic>
+#include <cstdlib>
 #include <utility>
-#include "run_time.h"
+
 #include "coder/abstract_protocol.h"
 #include "coder/tinypb_protocol.h"
+#include "config.h"
 #include "err_code.h"
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/message.h"
-#include "google/protobuf/service.h"
 #include "log.h"
 #include "msg_id_util.h"
 #include "rpc_controller.h"
+#include "run_time.h"
+#include "service_discovery/service_discovery.h"
 #include "tcp/tcp_client.h"
 #include "timer_event.h"
-#include "service_discovery/service_discovery.h"
-#include "config.h"
+
 namespace talon {
-    RpcChannel::RpcChannel(NetAddr::s_ptr peer_addr) : m_peer_addr(std::move(peer_addr)) {
-        INFOLOG("RpcChannel");
-        // 通过m_peer_addr 来发现 服务所在的地址
-    }
 
-    RpcChannel::~RpcChannel() {
-        INFOLOG("~RpcChannel");
-    }
+struct RpcChannel::RequestState {
+    std::shared_ptr<RpcController> controller;
+    std::shared_ptr<google::protobuf::Message> response;
+    std::shared_ptr<google::protobuf::Closure> closure;
+    TcpClient::s_ptr client;
+    TimerEvent::s_ptr timer;
+    std::string msg_id;
+    std::atomic_bool completed{false};
+    std::weak_ptr<RpcChannel> owner;
 
-
-    void RpcChannel::callBack() {
-        auto *my_controller = dynamic_cast<RpcController *>(getController());
-        if (my_controller->Finished()) {
-            return;
+    bool beginCompletion() {
+        if (completed.exchange(true)) {
+            return false;
         }
 
-        if (m_closure) {
-            m_closure->Run();
-            my_controller->SetFinished(true);
-        }
-    }
-
-    void RpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
-                                google::protobuf::RpcController *controller, const google::protobuf::Message *request,
-                                google::protobuf::Message *response, google::protobuf::Closure *done) {
-
-        std::shared_ptr<talon::TinyPBProtocol> req_protocol = std::make_shared<talon::TinyPBProtocol>();
-        
-        //  通过服务发现模块 重置 服务地址。
-        std::string service_center_ip = talon::Config::getServiceCenterMap()["service_center_ip"];
-        int query_port = std::atoi(Config::getServiceCenterMap()["query_port"].c_str());
-        auto server_addr = serviceDiscovery(method->full_name(), service_center_ip, query_port);
-        if(server_addr == "unknown host"){
-            ERRORLOG("[%s] service not found in Service Discovery",server_addr.c_str());
-            return;
-        }
-        m_peer_addr = FindAddr(server_addr);
-        printf("method func name is ------------------------%s\n", method->full_name().c_str());
-        m_client = std::make_shared<TcpClient>(m_peer_addr);
-        auto *my_controller = dynamic_cast<RpcController *>(controller);
-        if (my_controller == nullptr || request == nullptr || response == nullptr) {
-            ERRORLOG("failed callmethod, RpcController convert error");
-            my_controller->SetError(ERROR_RPC_CHANNEL_INIT, "controller or request or response NULL");
-            callBack();
-            return;
+        if (controller != nullptr) {
+            controller->SetFinished(true);
         }
 
-        if (m_peer_addr == nullptr) {
-            ERRORLOG("failed get peer addr");
-            my_controller->SetError(ERROR_RPC_PEER_ADDR, "peer addr nullptr");
-            callBack();
-            return;
-        }
-
-        //m_client = std::make_shared<TcpClient>(m_peer_addr);
-        if (my_controller->GetMsgId().empty()) {
-            // 先从 runtime 里面取, 取不到再生成一个
-            // 这样的目的是为了实现 msg_id 的透传，假设服务 A 调用了 B，那么同一个 msgid 可以在服务 A 和 B 之间串起来，方便日志追踪
-            std::string msg_id = RunTime::GetRunTime()->m_msgid;
-            if (!msg_id.empty()) {
-                req_protocol->m_msg_id = msg_id;
-                my_controller->SetMsgId(msg_id);
-            } else {
-                req_protocol->m_msg_id = MsgIDUtil::GenMsgID();
-                my_controller->SetMsgId(req_protocol->m_msg_id);
+        if (client != nullptr) {
+            client->setDisconnectCallback(nullptr);
+            client->removeReadMessage(msg_id);
+            if (timer != nullptr) {
+                client->deleteTimerEvent(timer);
             }
-
-        } else {
-            // 如果 controller 指定了 msgno, 直接使用
-            req_protocol->m_msg_id = my_controller->GetMsgId();
         }
-
-        req_protocol->m_method_name = method->full_name();
-        INFOLOG("%s | call method name [%s]", req_protocol->m_msg_id.c_str(), req_protocol->m_method_name.c_str());
-
-        if (!m_is_init) {
-            std::string err_info = "RpcChannel not call init()";
-            my_controller->SetError(ERROR_RPC_CHANNEL_INIT, err_info);
-            ERRORLOG("%s | %s, RpcChannel not init ", req_protocol->m_msg_id.c_str(), err_info.c_str())
-            callBack();
-            return;
+        if (controller != nullptr) {
+            controller->ClearCancelCallback();
         }
+        return true;
+    }
 
-        // requeset 的序列化
-        if (!request->SerializeToString(&(req_protocol->m_pb_data))) {
-            std::string err_info = "failde to serialize";
-            my_controller->SetError(ERROR_FAILED_SERIALIZE, err_info);
-            ERRORLOG("%s | %s, origin requeset [%s] ", req_protocol->m_msg_id.c_str(), err_info.c_str(),
-                     request->ShortDebugString().c_str());
-            callBack();
-            return;
-        }
-
-        s_ptr channel = shared_from_this();
-
-        TimerEvent::s_ptr timer_event = std::make_shared<TimerEvent>(my_controller->GetTimeout(), false,
-                                                                     [my_controller, channel]() mutable {
-                                                                         INFOLOG("%s | call rpc timeout arrive",
-                                                                                 my_controller->GetMsgId().c_str());
-                                                                         if (my_controller->Finished()) {
-                                                                             channel.reset();
-                                                                             return;
-                                                                         }
-
-                                                                         my_controller->StartCancel();
-                                                                         my_controller->SetError(ERROR_RPC_CALL_TIMEOUT,
-                                                                                                 "rpc call timeout " +
-                                                                                                 std::to_string(
-                                                                                                         my_controller->GetTimeout()));
-
-                                                                         channel->callBack();
-                                                                         channel.reset();
-                                                                     });
-
-        m_client->addTimerEvent(timer_event);
-
-        m_client->connect([req_protocol, this]() mutable {
-
-            auto *my_controller = dynamic_cast<RpcController *>(getController());
-
-            if (getTcpClient()->getConnectErrorCode() != 0) {
-                my_controller->SetError(getTcpClient()->getConnectErrorCode(), getTcpClient()->getConnectErrorInfo());
-                ERRORLOG("%s | connect error, error coode[%d], error info[%s], peer addr[%s]",
-                         req_protocol->m_msg_id.c_str(), my_controller->GetErrorCode(),
-                         my_controller->GetErrorInfo().c_str(), getTcpClient()->getPeerAddr()->toString().c_str());
-
-                callBack();
-
-                return;
+    void finish(int32_t error_code = 0, const std::string& error_info = {}) {
+        if (controller != nullptr) {
+            if (error_code != 0) {
+                controller->SetError(error_code, error_info);
             }
+            controller->SetFinished(true);
+        }
 
-            INFOLOG("%s | connect success, peer addr[%s], local addr[%s]",
-                    req_protocol->m_msg_id.c_str(),
-                    getTcpClient()->getPeerAddr()->toString().c_str(),
-                    getTcpClient()->getLocalAddr()->toString().c_str())
+        auto done = std::move(closure);
+        auto active_client = client;
+        timer.reset();
+        if (active_client != nullptr) {
+            active_client->setDisconnectCallback(nullptr);
+            active_client->disconnect();
+            active_client->stop();
+        }
+        if (done != nullptr) {
+            done->Run();
+        }
+        client.reset();
 
-            getTcpClient()->writeMessage(req_protocol,
-                                         [req_protocol, this, my_controller](const AbstractProtocol::s_ptr &) mutable {
-                                             INFOLOG("%s | send rpc request success. call method name[%s], peer addr[%s], local addr[%s]",
-                                                     req_protocol->m_msg_id.c_str(),
-                                                     req_protocol->m_method_name.c_str(),
-                                                     getTcpClient()->getPeerAddr()->toString().c_str(),
-                                                     getTcpClient()->getLocalAddr()->toString().c_str());
+        if (auto channel = owner.lock(); channel != nullptr &&
+            channel->m_request_state.get() == this) {
+            channel->m_request_state.reset();
+        }
+    }
+};
 
+namespace {
 
-                                             // 注册读回调
-                                             getTcpClient()->readMessage(req_protocol->m_msg_id, [this, my_controller](
-                                                     const AbstractProtocol::s_ptr& msg) mutable {
-                                                 std::shared_ptr<talon::TinyPBProtocol> rsp_protocol = std::dynamic_pointer_cast<talon::TinyPBProtocol>(
-                                                         msg);
-                                                 INFOLOG("%s | success get rpc response, call method name[%s], peer addr[%s], local addr[%s]",
-                                                         rsp_protocol->m_msg_id.c_str(),
-                                                         rsp_protocol->m_method_name.c_str(),
-                                                         getTcpClient()->getPeerAddr()->toString().c_str(),
-                                                         getTcpClient()->getLocalAddr()->toString().c_str());
+std::shared_ptr<RpcController> aliasController(
+    const std::shared_ptr<google::protobuf::RpcController>& controller,
+    google::protobuf::RpcController* raw_controller) {
+    auto typed = std::dynamic_pointer_cast<RpcController>(controller);
+    if (typed != nullptr) {
+        return typed;
+    }
+    auto* raw = dynamic_cast<RpcController*>(raw_controller);
+    if (raw == nullptr) {
+        return nullptr;
+    }
+    return std::shared_ptr<RpcController>(raw, [](RpcController*) {});
+}
 
-                                                 if (!(getResponse()->ParseFromString(rsp_protocol->m_pb_data))) {
-                                                     ERRORLOG("%s | serialize error", rsp_protocol->m_msg_id.c_str());
-                                                     my_controller->SetError(ERROR_FAILED_SERIALIZE, "serialize error");
-                                                     callBack();
-                                                     return;
-                                                 }
+template <typename T>
+std::shared_ptr<T> aliasObject(T* object) {
+    return std::shared_ptr<T>(object, [](T*) {});
+}
 
-                                                 if (rsp_protocol->m_err_code != 0) {
-                                                     ERRORLOG(
-                                                             "%s | call rpc methood[%s] failed, error code[%d], error info[%s]",
-                                                             rsp_protocol->m_msg_id.c_str(),
-                                                             rsp_protocol->m_method_name.c_str(),
-                                                             rsp_protocol->m_err_code,
-                                                             rsp_protocol->m_err_info.c_str());
+void completeSynchronously(RpcController* controller,
+                           google::protobuf::Closure* done,
+                           int32_t error_code,
+                           const std::string& error_info) {
+    controller->SetError(error_code, error_info);
+    controller->SetFinished(true);
+    if (done != nullptr) {
+        done->Run();
+    }
+}
 
-                                                     my_controller->SetError(rsp_protocol->m_err_code,
-                                                                             rsp_protocol->m_err_info);
-                                                     callBack();
-                                                     return;
-                                                 }
+}  // namespace
 
-                                                 INFOLOG("%s | call rpc success, call method name[%s], peer addr[%s], local addr[%s]",
-                                                         rsp_protocol->m_msg_id.c_str(),
-                                                         rsp_protocol->m_method_name.c_str(),
-                                                         getTcpClient()->getPeerAddr()->toString().c_str(),
-                                                         getTcpClient()->getLocalAddr()->toString().c_str())
+RpcChannel::RpcChannel(NetAddr::s_ptr peer_addr)
+    : m_peer_addr(std::move(peer_addr)) {
+    INFOLOG("RpcChannel");
+}
 
-                                                 callBack();
+RpcChannel::~RpcChannel() {
+    INFOLOG("~RpcChannel");
+}
 
-                                             });
+void RpcChannel::callBack() {
+    auto* controller = dynamic_cast<RpcController*>(getController());
+    if (controller == nullptr || controller->Finished()) {
+        return;
+    }
+    if (m_closure != nullptr) {
+        m_closure->Run();
+    }
+    controller->SetFinished(true);
+}
 
-                                         });
+void RpcChannel::CallMethod(
+    const google::protobuf::MethodDescriptor* method,
+    google::protobuf::RpcController* controller,
+    const google::protobuf::Message* request,
+    google::protobuf::Message* response,
+    google::protobuf::Closure* done) {
+    auto* rpc_controller = dynamic_cast<RpcController*>(controller);
+    if (rpc_controller == nullptr || request == nullptr || response == nullptr ||
+        method == nullptr) {
+        if (rpc_controller != nullptr) {
+            completeSynchronously(rpc_controller, done, ERROR_RPC_CHANNEL_INIT,
+                                  "controller, method, request or response NULL");
+        }
+        return;
+    }
 
+    if (rpc_controller->IsCanceled()) {
+        completeSynchronously(rpc_controller, done, ERROR_RPC_CALL_CANCELLED,
+                              "rpc call cancelled");
+        return;
+    }
+
+    auto service_config = Config::getServiceCenterMap();
+    const std::string service_center_ip = service_config["service_center_ip"];
+    const int query_port = std::atoi(service_config["query_port"].c_str());
+    auto server_addr = serviceDiscovery(method->full_name(), service_center_ip,
+                                         query_port);
+    if (server_addr == "unknown host") {
+        completeSynchronously(rpc_controller, done, ERROR_RPC_PEER_ADDR,
+                              "service not found");
+        return;
+    }
+    m_peer_addr = FindAddr(server_addr);
+    if (m_peer_addr == nullptr) {
+        completeSynchronously(rpc_controller, done, ERROR_RPC_PEER_ADDR,
+                              "peer addr nullptr");
+        return;
+    }
+
+    auto req_protocol = std::make_shared<TinyPBProtocol>();
+    if (rpc_controller->GetMsgId().empty()) {
+        std::string msg_id = RunTime::GetRunTime()->m_msgid;
+        if (msg_id.empty()) {
+            msg_id = MsgIDUtil::GenMsgID();
+        }
+        req_protocol->m_msg_id = msg_id;
+        rpc_controller->SetMsgId(msg_id);
+    } else {
+        req_protocol->m_msg_id = rpc_controller->GetMsgId();
+    }
+    req_protocol->m_method_name = method->full_name();
+
+    if (!m_is_init) {
+        completeSynchronously(rpc_controller, done, ERROR_RPC_CHANNEL_INIT,
+                              "RpcChannel not call init()");
+        return;
+    }
+    if (!request->SerializeToString(&req_protocol->m_pb_data)) {
+        completeSynchronously(rpc_controller, done, ERROR_FAILED_SERIALIZE,
+                              "failed to serialize request");
+        return;
+    }
+
+    auto state = std::make_shared<RequestState>();
+    state->controller = aliasController(m_controller, controller);
+    state->response = m_response != nullptr
+                          ? m_response
+                          : aliasObject(response);
+    state->closure = m_closure != nullptr
+                         ? m_closure
+                         : aliasObject(done);
+    state->msg_id = req_protocol->m_msg_id;
+    state->owner = weak_from_this();
+    if (state->controller == nullptr) {
+        completeSynchronously(rpc_controller, done, ERROR_RPC_CHANNEL_INIT,
+                              "controller type is unsupported");
+        return;
+    }
+
+    m_request_state = state;
+    m_client = std::make_shared<TcpClient>(m_peer_addr);
+    state->client = m_client;
+    std::weak_ptr<RequestState> weak_state = state;
+    auto client = m_client;
+
+    state->controller->SetCancelCallback([weak_state, client]() {
+        client->addTask([weak_state]() {
+            auto current = weak_state.lock();
+            if (current != nullptr && current->beginCompletion()) {
+                current->finish(ERROR_RPC_CALL_CANCELLED, "rpc call cancelled");
+            }
         });
+    });
+    state->timer = std::make_shared<TimerEvent>(
+        state->controller->GetTimeout(), false, [weak_state]() {
+            auto current = weak_state.lock();
+            if (current != nullptr && current->beginCompletion()) {
+                current->finish(ERROR_RPC_CALL_TIMEOUT, "rpc call timeout");
+            }
+        });
+    m_client->addTimerEvent(state->timer);
+    m_client->setDisconnectCallback([weak_state]() {
+        auto current = weak_state.lock();
+        if (current != nullptr && current->beginCompletion()) {
+            current->finish(ERROR_RPC_TRANSPORT,
+                            "rpc transport disconnected");
+        }
+    });
 
-    }
-
-    void RpcChannel::Init(controller_s_ptr controller, message_s_ptr req, message_s_ptr res, closure_s_ptr done) {
-        if (m_is_init) {
+    m_client->connect([weak_state, req_protocol]() {
+        auto current = weak_state.lock();
+        if (current == nullptr || current->completed.load()) {
             return;
         }
-        m_controller = std::move(controller);
-        m_request = std::move(req);
-        m_response = std::move(res);
-        m_closure = std::move(done);
-        m_is_init = true;
-    }
-
-    google::protobuf::RpcController *RpcChannel::getController() {
-        return m_controller.get();
-    }
-
-    google::protobuf::Message *RpcChannel::getRequest() {
-        return m_request.get();
-    }
-
-    google::protobuf::Message *RpcChannel::getResponse() {
-        return m_response.get();
-    }
-
-    google::protobuf::Closure *RpcChannel::getClosure() {
-        return m_closure.get();
-    }
-
-
-    TcpClient *RpcChannel::getTcpClient() {
-        return m_client.get();
-    }
-
-
-    NetAddr::s_ptr RpcChannel::FindAddr(const std::string &str) {
-        if (IPNetAddr::CheckValid(str)) {
-            return std::make_shared<IPNetAddr>(str);
-        } else {
-            auto it = Config::GetGlobalConfig()->m_rpc_stubs.find(str);
-            if (it != Config::GetGlobalConfig()->m_rpc_stubs.end()) {
-                INFOLOG("find addr [%s] in global config of str[%s]", (*it).second.addr->toString().c_str(),
-                        str.c_str());
-                return (*it).second.addr;
-            } else {
-                INFOLOG("can not find addr in global config of str[%s]", str.c_str());
-                return nullptr;
+        if (current->client->getConnectErrorCode() != 0) {
+            if (current->beginCompletion()) {
+                current->finish(current->client->getConnectErrorCode(),
+                                current->client->getConnectErrorInfo());
             }
+            return;
         }
-    }
+        current->client->writeMessage(
+            req_protocol, [weak_state, req_protocol](const AbstractProtocol::s_ptr&) {
+                auto current = weak_state.lock();
+                if (current == nullptr || current->completed.load()) {
+                    return;
+                }
+                current->client->readMessage(
+                    req_protocol->m_msg_id,
+                    [weak_state](const AbstractProtocol::s_ptr& message) {
+                        auto current = weak_state.lock();
+                        if (current == nullptr || !current->beginCompletion()) {
+                            return;
+                        }
+                        auto response =
+                            std::dynamic_pointer_cast<TinyPBProtocol>(message);
+                        if (response == nullptr) {
+                            current->finish(ERROR_FAILED_GET_REPLY,
+                                            "invalid rpc response");
+                            return;
+                        }
+                        if (!current->response->ParseFromString(
+                                response->m_pb_data)) {
+                            current->finish(ERROR_FAILED_SERIALIZE,
+                                            "failed to deserialize response");
+                            return;
+                        }
+                        if (response->m_err_code != 0) {
+                            current->finish(response->m_err_code,
+                                            response->m_err_info);
+                            return;
+                        }
+                        current->finish();
+                    });
+            });
+    });
+}
 
+void RpcChannel::Init(controller_s_ptr controller, message_s_ptr req,
+                      message_s_ptr res, closure_s_ptr done) {
+    if (m_is_init) {
+        return;
+    }
+    m_controller = std::move(controller);
+    m_request = std::move(req);
+    m_response = std::move(res);
+    m_closure = std::move(done);
+    m_is_init = true;
+}
+
+google::protobuf::RpcController* RpcChannel::getController() {
+    return m_controller.get();
+}
+
+google::protobuf::Message* RpcChannel::getRequest() {
+    return m_request.get();
+}
+
+google::protobuf::Message* RpcChannel::getResponse() {
+    return m_response.get();
+}
+
+google::protobuf::Closure* RpcChannel::getClosure() {
+    return m_closure.get();
+}
+
+TcpClient* RpcChannel::getTcpClient() {
+    return m_client.get();
+}
+
+NetAddr::s_ptr RpcChannel::FindAddr(const std::string& str) {
+    if (IPNetAddr::CheckValid(str)) {
+        return std::make_shared<IPNetAddr>(str);
+    }
+    auto it = Config::GetGlobalConfig()->m_rpc_stubs.find(str);
+    if (it != Config::GetGlobalConfig()->m_rpc_stubs.end()) {
+        return it->second.addr;
+    }
+    return nullptr;
+}
 
 }  // namespace talon

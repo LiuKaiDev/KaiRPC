@@ -82,7 +82,9 @@ namespace talon{
                             self->m_connect_error_code = ERROR_FAILED_CONNECT;
                             self->m_connect_error_info = "connect unkonwn error, sys error = " + std::string(strerror(errno));
                         }
-                        ERRORLOG("connect errror, errno=%d, error=%s", errno, strerror(errno));
+                        ERRORLOG("connect errror, errno=%d, error=%s", errno,
+                                 strerror(errno));
+                        self->m_connection->setDisconnectCallback(nullptr);
                         self->m_connection->clear();
                         self->m_fd = -1;
                         self->m_fd_event = nullptr;
@@ -138,6 +140,27 @@ namespace talon{
         m_connection->listenRead();
     }
 
+    void TcpClient::removeReadMessage(const std::string& msg_id) {
+        if (m_connection != nullptr) {
+            m_connection->removeReadMessage(msg_id);
+        }
+    }
+
+    void TcpClient::setDisconnectCallback(std::function<void()> callback) {
+        if (m_connection != nullptr) {
+            m_connection->setDisconnectCallback(std::move(callback));
+        }
+    }
+
+    void TcpClient::disconnect() {
+        if (m_connection != nullptr) {
+            m_connection->setDisconnectCallback(nullptr);
+            m_connection->clear();
+        }
+        m_fd = -1;
+        m_fd_event = nullptr;
+    }
+
     int TcpClient::getConnectErrorCode() const {
         return m_connect_error_code;
     }
@@ -172,5 +195,17 @@ namespace talon{
 
     void TcpClient::addTimerEvent(const TimerEvent::s_ptr& timer_event) {
         m_event_loop->addTimerEvent(timer_event);
+    }
+
+    void TcpClient::deleteTimerEvent(const TimerEvent::s_ptr& timer_event) {
+        if (m_event_loop != nullptr) {
+            m_event_loop->deleteTimerEvent(timer_event);
+        }
+    }
+
+    void TcpClient::addTask(const std::function<void()>& task) {
+        if (m_event_loop != nullptr) {
+            m_event_loop->addTask(task, true);
+        }
     }
 }

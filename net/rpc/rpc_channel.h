@@ -66,6 +66,8 @@ namespace talon {
         TcpClient* getTcpClient();
 
     private:
+        struct RequestState;
+
         void callBack();
 
     private:
@@ -80,6 +82,8 @@ namespace talon {
         bool m_is_init {false};
 
         TcpClient::s_ptr m_client {nullptr};
+
+        std::shared_ptr<RequestState> m_request_state {nullptr};
 
     };
 

@@ -8,6 +8,8 @@
 #include "google/protobuf/service.h"
 #include "log.h"
 #include "tcp/net_addr.h"
+#include <functional>
+#include <mutex>
 namespace talon {
 
     class RpcController : public google::protobuf::RpcController {
@@ -56,7 +58,12 @@ namespace talon {
 
         void SetFinished(bool value);
 
+        void SetCancelCallback(std::function<void()> callback);
+
+        void ClearCancelCallback();
+
     private:
+        mutable std::mutex m_mutex;
         int32_t m_error_code {0};
         std::string m_error_info;
         std::string m_msg_id;
@@ -69,6 +76,9 @@ namespace talon {
         NetAddr::s_ptr m_peer_addr;
 
         int m_timeout {1000};   // ms
+
+        google::protobuf::Closure* m_cancel_closure {nullptr};
+        std::function<void()> m_cancel_callback;
 
     };
 

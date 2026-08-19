@@ -69,6 +69,10 @@ namespace talon {
 
         void pushReadMessage(const std::string& msg_id, const std::function<void(AbstractProtocol::s_ptr)>& done);
 
+        void removeReadMessage(const std::string& msg_id);
+
+        void setDisconnectCallback(std::function<void()> callback);
+
         NetAddr::s_ptr getLocalAddr();
 
         NetAddr::s_ptr getPeerAddr();
@@ -100,6 +104,8 @@ namespace talon {
 
         // key 为 msg_id
         std::map<std::string, std::function<void(AbstractProtocol::s_ptr)>> m_read_dones;
+
+        std::function<void()> m_disconnect_callback;
 
     };
 

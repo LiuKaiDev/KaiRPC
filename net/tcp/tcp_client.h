@@ -32,6 +32,12 @@ namespace talon {
         // 如果读取 message 成功，会调用 done 函数， 函数的入参就是 message 对象
         void readMessage(const std::string& msg_id, std::function<void(AbstractProtocol::s_ptr)> done);
 
+        void removeReadMessage(const std::string& msg_id);
+
+        void setDisconnectCallback(std::function<void()> callback);
+
+        void disconnect();
+
         void stop();
 
         int getConnectErrorCode() const;
@@ -45,6 +51,11 @@ namespace talon {
         void initLocalAddr();
 
         void addTimerEvent(const TimerEvent::s_ptr& timer_event);
+
+        void deleteTimerEvent(const TimerEvent::s_ptr& timer_event);
+
+        // Marshal cross-thread RPC completion work onto this client's event loop.
+        void addTask(const std::function<void()>& task);
 
 
     private:
