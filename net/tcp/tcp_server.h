@@ -41,13 +41,15 @@ namespace talon {
 
         IOThreadGroup* m_io_thread_group {nullptr};   // subReactor 组
 
-        Fd_Event* m_listen_fd_event;
+        Fd_Event* m_listen_fd_event {nullptr};
 
         int m_client_counts {0};
 
         std::set<TcpConnection::s_ptr> m_client;
 
         TimerEvent::s_ptr m_clear_client_timer_event;
+
+        std::shared_ptr<int> m_lifetime_token {std::make_shared<int>(0)};
 
     };
 } // talon

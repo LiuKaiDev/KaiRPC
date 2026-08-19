@@ -4,6 +4,7 @@
 
 #include "iothread.h"
 #include <cassert>
+#include <cerrno>
 #include "log.h"
 #include "util.h"
 namespace talon{
@@ -24,17 +25,14 @@ namespace talon{
     }
 
     IOThread::~IOThread() {
-
-        m_event_loop->stop();
-        sem_destroy(&m_init_semaphore);
-        sem_destroy(&m_start_semaphore);
-
-        pthread_join(m_thread, nullptr);
-
+        stop();
+        join();
         if (m_event_loop) {
             delete m_event_loop;
             m_event_loop = nullptr;
         }
+        sem_destroy(&m_init_semaphore);
+        sem_destroy(&m_start_semaphore);
     }
 
 
@@ -52,7 +50,13 @@ namespace talon{
 
         DEBUGLOG("IOThread %d created, wait start semaphore", thread->m_thread_id);
 
-        sem_wait(&thread->m_start_semaphore);
+        int wait_result = 0;
+        do {
+            wait_result = sem_wait(&thread->m_start_semaphore);
+        } while (wait_result != 0 && errno == EINTR);
+        if (wait_result != 0) {
+            return nullptr;
+        }
         DEBUGLOG("IOThread %d start loop ", thread->m_thread_id);
         thread->m_event_loop->loop();
 
@@ -69,11 +73,27 @@ namespace talon{
 
     void IOThread::start() {
         DEBUGLOG("Now invoke IOThread %d", m_thread_id);
-        sem_post(&m_start_semaphore);
+        if (!m_started.exchange(true)) {
+            sem_post(&m_start_semaphore);
+        }
     }
 
+    void IOThread::stop() {
+        if (m_event_loop != nullptr) {
+            m_event_loop->stop();
+        }
+        if (!m_started.exchange(true)) {
+            sem_post(&m_start_semaphore);
+        }
+    }
 
-    void IOThread::join() const {
-        pthread_join(m_thread, nullptr);
+    void IOThread::join() {
+        if (pthread_equal(pthread_self(), m_thread)) {
+            return;
+        }
+        bool expected = false;
+        if (m_joined.compare_exchange_strong(expected, true)) {
+            pthread_join(m_thread, nullptr);
+        }
     }
 }

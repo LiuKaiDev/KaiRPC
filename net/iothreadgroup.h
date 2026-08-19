@@ -18,6 +18,8 @@ namespace talon {
 
         void start();
 
+        void stop();
+
         void join();
 
         IOThread *getIOThread();

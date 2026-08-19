@@ -55,10 +55,6 @@ namespace talon {
 
         m_coder = new TinyPBCoder();
 
-        if (m_connection_type == TcpConnectionByServer) {
-            listenRead();
-        }
-
     }
 
     TcpConnection::~TcpConnection() {
@@ -286,8 +282,22 @@ namespace talon {
             return;
         }
 
-        m_fd_event->listen(Fd_Event::OUT_EVENT, [this] { onWrite(); },
-                           [this] { clear(); });
+        std::weak_ptr<TcpConnection> weak_self = weak_from_this();
+        if (weak_self.expired()) {
+            return;
+        }
+        m_fd_event->listen(
+            Fd_Event::OUT_EVENT,
+            [weak_self]() {
+                if (auto self = weak_self.lock()) {
+                    self->onWrite();
+                }
+            },
+            [weak_self]() {
+                if (auto self = weak_self.lock()) {
+                    self->clear();
+                }
+            });
         m_event_loop->addEpollEvent(m_fd_event);
     }
 
@@ -297,8 +307,22 @@ namespace talon {
             return;
         }
 
-        m_fd_event->listen(Fd_Event::IN_EVENT, [this] { onRead(); },
-                           [this] { clear(); });
+        std::weak_ptr<TcpConnection> weak_self = weak_from_this();
+        if (weak_self.expired()) {
+            return;
+        }
+        m_fd_event->listen(
+            Fd_Event::IN_EVENT,
+            [weak_self]() {
+                if (auto self = weak_self.lock()) {
+                    self->onRead();
+                }
+            },
+            [weak_self]() {
+                if (auto self = weak_self.lock()) {
+                    self->clear();
+                }
+            });
         m_event_loop->addEpollEvent(m_fd_event);
     }
 

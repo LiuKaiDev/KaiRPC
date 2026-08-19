@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <memory>
+#include <atomic>
 
 namespace talon {
 
@@ -23,11 +24,11 @@ namespace talon {
         }
 
         void setCancled(bool value) {
-            m_is_cancled = value;
+            m_is_cancled.store(value);
         }
 
         bool isCancled() const {
-            return m_is_cancled;
+            return m_is_cancled.load();
         }
 
         bool isRepeated() const {
@@ -44,7 +45,7 @@ namespace talon {
         int64_t m_arrive_time{};    // ms
         int64_t m_interval;       // ms
         bool m_is_repeated {false};
-        bool m_is_cancled {false};
+        std::atomic_bool m_is_cancled {false};
 
         std::function<void()> m_task;
 

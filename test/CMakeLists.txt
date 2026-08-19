@@ -37,6 +37,10 @@ if(BUILD_TESTING)
         test_fd_epoll.cc
     )
 
+    add_executable(lifetime_iothread_test
+        test_lifetime_iothread.cc
+    )
+
     add_executable(service_discovery_integration_test
         test_service_discovery_integration.cc
     )
@@ -55,6 +59,7 @@ if(BUILD_TESTING)
     target_link_libraries(tcp_buffer_test PRIVATE kairpc)
     target_link_libraries(tcp_write_path_test PRIVATE kairpc)
     target_link_libraries(fd_epoll_test PRIVATE kairpc)
+    target_link_libraries(lifetime_iothread_test PRIVATE kairpc)
 
     add_test(NAME unit.tcp_buffer COMMAND tcp_buffer_test)
     add_test(NAME unit.tinypb_codec COMMAND tinypb_codec_test)
@@ -68,6 +73,14 @@ if(BUILD_TESTING)
     add_test(NAME unit.epoll.hup COMMAND fd_epoll_test hup)
     add_test(NAME unit.epoll.rdhup COMMAND fd_epoll_test rdhup)
     add_test(NAME unit.epoll.rdhup_with_data COMMAND fd_epoll_test rdhup_with_data)
+    add_test(NAME unit.iothread.start_stop COMMAND lifetime_iothread_test start_stop)
+    add_test(NAME unit.iothread.destructor COMMAND lifetime_iothread_test destructor)
+    add_test(NAME unit.iothread.idempotent_stop COMMAND lifetime_iothread_test idempotent_stop)
+    add_test(NAME unit.iothreadgroup.shutdown COMMAND lifetime_iothread_test group_shutdown)
+    add_test(NAME unit.iothreadgroup.repeat COMMAND lifetime_iothread_test repeat)
+    add_test(NAME unit.lifetime.deferred_callback COMMAND lifetime_iothread_test deferred_callback)
+    add_test(NAME unit.lifetime.timer_cancel COMMAND lifetime_iothread_test timer_cancel)
+    add_test(NAME unit.shutdown.server COMMAND lifetime_iothread_test server_shutdown)
     add_test(
         NAME integration.service_discovery
         COMMAND service_discovery_integration_test
@@ -112,6 +125,20 @@ if(BUILD_TESTING)
         unit.epoll.rdhup_with_data
         PROPERTIES
             LABELS "unit;network;fd-lifecycle;epoll;tcp"
+            TIMEOUT 15
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    )
+    set_tests_properties(
+        unit.iothread.start_stop
+        unit.iothread.destructor
+        unit.iothread.idempotent_stop
+        unit.iothreadgroup.shutdown
+        unit.iothreadgroup.repeat
+        unit.lifetime.deferred_callback
+        unit.lifetime.timer_cancel
+        unit.shutdown.server
+        PROPERTIES
+            LABELS "unit;network;lifetime;iothread;shutdown"
             TIMEOUT 15
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     )

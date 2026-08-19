@@ -11,7 +11,7 @@
 #include "coder/abstract_protocol.h"
 
 namespace talon {
-    class TcpClient {
+    class TcpClient : public std::enable_shared_from_this<TcpClient> {
     public:
         typedef std::shared_ptr<TcpClient> s_ptr;
 

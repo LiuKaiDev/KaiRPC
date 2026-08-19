@@ -7,6 +7,7 @@
 #include "cstring"
 #include "log.h"
 #include "sys/timerfd.h"
+#include "unistd.h"
 #include "util.h"
 
 namespace talon {
@@ -27,7 +28,12 @@ Timer::Timer() : Fd_Event() {
     listen(Fd_Event::IN_EVENT, [this] { onTimer(); });
 }
 
-Timer::~Timer() {}
+Timer::~Timer() {
+    if (m_fd >= 0) {
+        close(m_fd);
+        m_fd = -1;
+    }
+}
 
 void Timer::onTimer() {
     /*

@@ -4,6 +4,7 @@
 
 #include "tcp_server.h"
 
+#include "unistd.h"
 #include <utility>
 #include "eventloop.h"
 #include "tcp_connection.h"
@@ -28,18 +29,32 @@ namespace talon {
     }
 
     TcpServer::~TcpServer() {
-        if (m_main_event_loop) {
-            delete m_main_event_loop;
-            m_main_event_loop = nullptr;
+        m_lifetime_token.reset();
+        if (m_main_event_loop != nullptr) {
+            if (m_clear_client_timer_event != nullptr) {
+                m_main_event_loop->deleteTimerEvent(m_clear_client_timer_event);
+            }
+            if (m_listen_fd_event != nullptr) {
+                m_main_event_loop->deleteEpollEvent(m_listen_fd_event);
+            }
         }
-        if (m_io_thread_group) {
+        m_clear_client_timer_event.reset();
+
+        if (m_io_thread_group != nullptr) {
+            m_io_thread_group->stop();
+            m_io_thread_group->join();
+        }
+        m_client.clear();
+        if (m_io_thread_group != nullptr) {
             delete m_io_thread_group;
             m_io_thread_group = nullptr;
         }
-        if (m_listen_fd_event) {
+        if (m_listen_fd_event != nullptr) {
             delete m_listen_fd_event;
             m_listen_fd_event = nullptr;
         }
+        m_acceptor.reset();
+        m_main_event_loop = nullptr;
     }
 
 
@@ -51,11 +66,21 @@ namespace talon {
         m_io_thread_group = new IOThreadGroup(Config::GetGlobalConfig()->m_io_threads);
 
         m_listen_fd_event = new Fd_Event(m_acceptor->getListenFd());
-        m_listen_fd_event->listen(Fd_Event::IN_EVENT, [this] { onAccept(); });
+        std::weak_ptr<int> weak_lifetime = m_lifetime_token;
+        m_listen_fd_event->listen(Fd_Event::IN_EVENT, [this, weak_lifetime] {
+            if (!weak_lifetime.expired()) {
+                onAccept();
+            }
+        });
 
         m_main_event_loop->addEpollEvent(m_listen_fd_event);
 
-        m_clear_client_timer_event = std::make_shared<TimerEvent>(5000, true, [this] { ClearClientTimerFunc(); });
+        m_clear_client_timer_event = std::make_shared<TimerEvent>(
+            5000, true, [this, weak_lifetime] {
+                if (!weak_lifetime.expired()) {
+                    ClearClientTimerFunc();
+                }
+            });
         m_main_event_loop->addTimerEvent(m_clear_client_timer_event);
 
     }
@@ -66,13 +91,21 @@ namespace talon {
         auto re = m_acceptor->accept();
         int client_fd = re.first;
         NetAddr::s_ptr peer_addr = re.second;
+        if (client_fd < 0 || peer_addr == nullptr) {
+            return;
+        }
 
         m_client_counts++;
 
         // 把 cleintfd 添加到任意 IO 线程里面
         IOThread* io_thread = m_io_thread_group->getIOThread();
+        if (io_thread == nullptr) {
+            close(client_fd);
+            return;
+        }
         TcpConnection::s_ptr connetion = std::make_shared<TcpConnection>(io_thread->getEventLoop(), client_fd, 128, peer_addr, m_local_addr);
         connetion->setState(Connected);
+        connetion->listenRead();
 
         m_client.insert(connetion);
 

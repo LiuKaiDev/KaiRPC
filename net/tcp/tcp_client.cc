@@ -60,27 +60,32 @@ namespace talon{
         } else if (rt == -1) {
             if (errno == EINPROGRESS) {
                 // epoll 监听可写事件，然后判断错误码
-                auto connect_callback = [this, done]() {
-                    m_fd_event->cancle(Fd_Event::OUT_EVENT);
-                    m_event_loop->deleteEpollEvent(m_fd_event);
-                    int rt = ::connect(m_fd, m_peer_addr->getSockAddr(),
-                                       m_peer_addr->getSockLen());
+                std::weak_ptr<TcpClient> weak_self = weak_from_this();
+                auto connect_callback = [weak_self, done]() {
+                    auto self = weak_self.lock();
+                    if (self == nullptr) {
+                        return;
+                    }
+                    self->m_fd_event->cancle(Fd_Event::OUT_EVENT);
+                    self->m_event_loop->deleteEpollEvent(self->m_fd_event);
+                    int rt = ::connect(self->m_fd, self->m_peer_addr->getSockAddr(),
+                                       self->m_peer_addr->getSockLen());
                     if ((rt < 0 && errno == EISCONN) || (rt == 0)) {
-                        DEBUGLOG("connect [%s] sussess", m_peer_addr->toString().c_str());
-                        initLocalAddr();
-                        m_connection->setState(Connected);
+                        DEBUGLOG("connect [%s] sussess", self->m_peer_addr->toString().c_str());
+                        self->initLocalAddr();
+                        self->m_connection->setState(Connected);
                     } else {
                         if (errno == ECONNREFUSED) {
-                            m_connect_error_code = ERROR_PEER_CLOSED;
-                            m_connect_error_info = "connect refused, sys error = " + std::string(strerror(errno));
+                            self->m_connect_error_code = ERROR_PEER_CLOSED;
+                            self->m_connect_error_info = "connect refused, sys error = " + std::string(strerror(errno));
                         } else {
-                            m_connect_error_code = ERROR_FAILED_CONNECT;
-                            m_connect_error_info = "connect unkonwn error, sys error = " + std::string(strerror(errno));
+                            self->m_connect_error_code = ERROR_FAILED_CONNECT;
+                            self->m_connect_error_info = "connect unkonwn error, sys error = " + std::string(strerror(errno));
                         }
                         ERRORLOG("connect errror, errno=%d, error=%s", errno, strerror(errno));
-                        m_connection->clear();
-                        m_fd = -1;
-                        m_fd_event = nullptr;
+                        self->m_connection->clear();
+                        self->m_fd = -1;
+                        self->m_fd_event = nullptr;
                     }
 
                     DEBUGLOG("now begin to done");

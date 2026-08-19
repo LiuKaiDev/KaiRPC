@@ -29,7 +29,7 @@ namespace talon {
         TcpConnectionByClient = 2,  // 作为客户端使用，代表跟对赌服务端的连接
     };
 
-    class TcpConnection {
+    class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
     public:
 
         typedef std::shared_ptr<TcpConnection> s_ptr;

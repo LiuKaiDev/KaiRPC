@@ -45,6 +45,10 @@ namespace talon {
 
 
     TcpAcceptor::~TcpAcceptor() {
+        if (m_listenfd >= 0) {
+            close(m_listenfd);
+            m_listenfd = -1;
+        }
     }
 
 

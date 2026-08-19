@@ -6,6 +6,7 @@
 #define TALON_RPC_IOTHREAD_H
 
 #include "thread"
+#include "atomic"
 #include "semaphore.h"
 #include "eventloop.h"
 
@@ -21,7 +22,9 @@ namespace talon {
 
         void start();
 
-        void join() const;
+        void stop();
+
+        void join();
 
     public:
         static void* Main(void* arg);
@@ -36,6 +39,9 @@ namespace talon {
         sem_t m_init_semaphore;
 
         sem_t m_start_semaphore;
+
+        std::atomic_bool m_started {false};
+        std::atomic_bool m_joined {false};
 
     };
 

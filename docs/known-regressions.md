@@ -85,21 +85,41 @@ remaining entries stay open for their planned stages.
 
 ### BUG-LIFETIME-001: raw callbacks can outlive owners
 
-- **Current observation:** Event, timer, RPC, and heartbeat callbacks capture
-  raw object pointers without a cancellation barrier.
-- **Risk:** Shutdown/reconnect races can dereference freed objects.
-- **Future test idea:** Destroy a connection/channel while callbacks are queued
-  and run under ASan/TSan with a deterministic synchronization barrier.
-- **Planned stage/category:** Stage 5, callback lifetime and cancellation.
+- **Status:** FIXED in Stage 5 (`fix(runtime): harden callback lifetime and
+  thread shutdown`).
+- **Root cause:** `TcpConnection` read/write/error handlers and client connect
+  handlers captured raw owners in callbacks that could remain queued after
+  destruction. The server listener and cleanup timer had the same stale-owner
+  risk.
+- **Regression tests:** `unit.lifetime.deferred_callback` queues a real
+  connection read callback, destroys the shared connection, and runs the loop;
+  the Stage 4 baseline produced an ASan heap-use-after-free in
+  `TcpConnection::onRead()`. `unit.lifetime.timer_cancel` verifies cancelled
+  timer work does not run, and `unit.shutdown.server` exercises server teardown.
+- **Production fix:** Connection and client event callbacks use weak ownership
+  guards; server callbacks use a lifetime token; timer cancellation is exposed
+  through `Eventloop::deleteTimerEvent()` and its flag is atomic.
+- **Invariant:** A queued callback becomes a no-op once its owner is destroyed,
+  and cancelled timer work cannot re-arm or invoke owner state.
 
 ### BUG-IOTHREAD-001: shutdown ownership is incomplete
 
-- **Current observation:** `IOThreadGroup` has no coordinated destructor/join
-  path, and server teardown order does not drain worker event loops.
-- **Risk:** Threads, eventfds, timers, and queued tasks can outlive the server.
-- **Future test idea:** Start and stop a server repeatedly, join every worker,
-  and assert no thread or fd remains after destruction.
-- **Planned stage/category:** Stage 5, lifecycle and shutdown ownership.
+- **Status:** FIXED in Stage 5 (`fix(runtime): harden callback lifetime and
+  thread shutdown`).
+- **Root cause:** An unstarted worker blocked forever on its start semaphore,
+  `IOThreadGroup::~IOThreadGroup()` leaked children, and semaphore destruction
+  raced worker access. EventLoop-owned eventfds/timerfds were also not closed.
+- **Regression tests:** `unit.iothread.start_stop`,
+  `unit.iothread.destructor`, `unit.iothread.idempotent_stop`,
+  `unit.iothreadgroup.shutdown`, `unit.iothreadgroup.repeat`, and
+  `unit.shutdown.server` cover bounded stop/join and repeated `/proc/self/task`
+  and `/proc/self/fd` counts.
+- **Production fix:** `IOThread::stop()` is idempotent and releases an
+  unstarted worker; destruction stops, joins exactly once, then destroys
+  semaphores. `IOThreadGroup` owns, stops, joins, and deletes every child.
+  EventLoop, timer, wakeup, acceptor, and server teardown follow that order.
+- **Invariant:** No owned worker or shutdown synchronization object outlives
+  its owner, and repeated lifecycle does not accumulate threads or descriptors.
 
 ## RPC behavior
 

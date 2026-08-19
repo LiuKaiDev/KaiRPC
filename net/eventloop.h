@@ -11,6 +11,7 @@
 #include "queue"
 #include "mutex"
 #include "thread"
+#include "atomic"
 #include "fd_event.h"
 #include "wakeup_fd_event.h"
 #include "timer.h"
@@ -39,9 +40,11 @@ namespace talon{
 
         void addTimerEvent(const TimerEvent::s_ptr& event);
 
+        void deleteTimerEvent(const TimerEvent::s_ptr& event);
+
         bool isLooping() const;
-        bool m_stop_flag {false};
-        bool m_is_looping {false};
+        std::atomic_bool m_stop_flag {false};
+        std::atomic_bool m_is_looping {false};
 
 
     public:
@@ -58,7 +61,7 @@ namespace talon{
     private:
         pid_t m_thread_id {0};
 
-        int m_epoll_fd {0};
+        int m_epoll_fd {-1};
 
         int m_wakeup_fd {0};
 

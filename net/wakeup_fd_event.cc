@@ -10,7 +10,10 @@ talon::WakeUpFdEvent::WakeUpFdEvent(int fd) : Fd_Event(fd) {
 }
 
 talon::WakeUpFdEvent::~WakeUpFdEvent() {
-
+    if (m_fd >= 0) {
+        close(m_fd);
+        m_fd = -1;
+    }
 }
 
 void talon::WakeUpFdEvent::wakeup() {

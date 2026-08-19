@@ -72,7 +72,11 @@ namespace talon {
     }
 
     Eventloop::~Eventloop() {
-        close(m_epoll_fd);
+        stop();
+        if (m_epoll_fd >= 0) {
+            close(m_epoll_fd);
+            m_epoll_fd = -1;
+        }
         if (m_wakeup_fd_event) {
             delete m_wakeup_fd_event;
             m_wakeup_fd_event = nullptr;
@@ -80,6 +84,9 @@ namespace talon {
         if (m_timer) {
             delete m_timer;
             m_timer = nullptr;
+        }
+        if (t_current_Eventloop == this) {
+            t_current_Eventloop = nullptr;
         }
     }
 
@@ -90,7 +97,15 @@ namespace talon {
     }
 
     void Eventloop::addTimerEvent(const TimerEvent::s_ptr& event) {
-        m_timer->addTimerEvent(event);
+        if (m_timer != nullptr && event != nullptr && !m_stop_flag.load()) {
+            m_timer->addTimerEvent(event);
+        }
+    }
+
+    void Eventloop::deleteTimerEvent(const TimerEvent::s_ptr& event) {
+        if (m_timer != nullptr && event != nullptr) {
+            m_timer->deleteTimerEvent(event);
+        }
     }
 
     void Eventloop::initWakeUpFdEevent() {
@@ -116,14 +131,18 @@ namespace talon {
 
 
     void Eventloop::loop() {
-        m_is_looping = true;
-        while(!m_stop_flag) {
+        if (m_stop_flag.load()) {
+            m_is_looping.store(false);
+            return;
+        }
+        m_is_looping.store(true);
+        while(!m_stop_flag.load()) {
             ScopeMutex<Mutex> lock(m_mutex);
             std::queue<std::function<void()>> tmp_tasks;
             m_pending_tasks.swap(tmp_tasks);
             lock.unlock();
 
-            while (!tmp_tasks.empty()) {
+            while (!tmp_tasks.empty() && !m_stop_flag.load()) {
                 std::function<void()> cb = tmp_tasks.front();
                 tmp_tasks.pop();
                 if (cb) {
@@ -184,18 +203,21 @@ namespace talon {
             }
 
         }
+        m_is_looping.store(false);
 
     }
 
     void Eventloop::wakeup() {
         INFOLOG("WAKE UP");
-        m_wakeup_fd_event->wakeup();
+        if (m_wakeup_fd_event != nullptr) {
+            m_wakeup_fd_event->wakeup();
+        }
     }
 
     void Eventloop::stop() {
-        m_stop_flag = true;
-        m_is_looping = false;
-        wakeup();
+        if (!m_stop_flag.exchange(true)) {
+            wakeup();
+        }
     }
 
     void Eventloop::dealWakeup() {
@@ -203,6 +225,10 @@ namespace talon {
     }
 
     void Eventloop::addEpollEvent(Fd_Event* event) {
+
+        if (event == nullptr || m_stop_flag.load()) {
+            return;
+        }
 
         /**
          * 如果 b
@@ -258,7 +284,13 @@ namespace talon {
     }
 
     void Eventloop::addTask(const std::function<void()>& cb, bool is_wake_up /*=false*/) {
+        if (m_stop_flag.load()) {
+            return;
+        }
         ScopeMutex<Mutex> lock(m_mutex);
+        if (m_stop_flag.load()) {
+            return;
+        }
         m_pending_tasks.push(cb);
         lock.unlock();
 
